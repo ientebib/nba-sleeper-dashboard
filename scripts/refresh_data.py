@@ -229,9 +229,8 @@ def get_week_number(date_str: str) -> int:
 def calculate_fpts(game: dict, scoring: dict) -> float:
     """Calculate fantasy points based on scoring settings."""
     fpts = 0.0
+
     # Map Sleeper scoring keys to NBA API stat keys
-    # Note: Sleeper uses "to" for turnovers, not "tov"
-    # Note: Sleeper uses "tpm" for 3-pointers made
     stat_map = {
         "pts": "PTS",
         "reb": "REB",
@@ -249,6 +248,37 @@ def calculate_fpts(game: dict, scoring: dict) -> float:
     for sleeper_key, nba_key in stat_map.items():
         if sleeper_key in scoring and nba_key in game:
             fpts += scoring[sleeper_key] * (game[nba_key] or 0)
+
+    # Get raw stats for bonus calculations
+    pts = game.get("PTS", 0) or 0
+    reb = game.get("REB", 0) or 0
+    ast = game.get("AST", 0) or 0
+    stl = game.get("STL", 0) or 0
+    blk = game.get("BLK", 0) or 0
+
+    # Bonus scoring
+    # Points bonuses
+    if pts >= 50 and "bonus_pt_50p" in scoring:
+        fpts += scoring["bonus_pt_50p"]
+    if pts >= 40 and "bonus_pt_40p" in scoring:
+        fpts += scoring["bonus_pt_40p"]
+
+    # Rebounds bonus
+    if reb >= 20 and "bonus_reb_20p" in scoring:
+        fpts += scoring["bonus_reb_20p"]
+
+    # Assists bonus
+    if ast >= 15 and "bonus_ast_15p" in scoring:
+        fpts += scoring["bonus_ast_15p"]
+
+    # Double-double bonus (2 categories with 10+)
+    categories_10plus = sum([1 for val in [pts, reb, ast, stl, blk] if val >= 10])
+    if categories_10plus >= 2 and "dd" in scoring:
+        fpts += scoring["dd"]
+
+    # Triple-double bonus (3 categories with 10+)
+    if categories_10plus >= 3 and "td" in scoring:
+        fpts += scoring["td"]
 
     return round(fpts, 1)
 

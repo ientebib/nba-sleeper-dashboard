@@ -629,7 +629,7 @@ export default function PlayerDetail({ player, allPlayers, onBack, nbaSchedule, 
                               {isActiveForCalc ? '●' : '○'}
                             </span>
                           </td>
-                          <td>{game.date.slice(5)}</td>
+                          <td>{new Date(game.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
                           <td>{game.matchup}</td>
                           <td>{game.minutes}</td>
                           <td className={`fpts-cell ${game.fpts >= 50 ? 'elite' : game.fpts >= 40 ? 'good' : game.fpts < 30 ? 'bad' : ''}`}>
