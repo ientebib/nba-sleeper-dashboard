@@ -1,0 +1,1066 @@
+[
+  {
+    "roster_id": 1,
+    "owner_id": "1266829794398441472",
+    "owner_name": "isaacentebib",
+    "team_name": "we believe in miracles",
+    "record": "5-7",
+    "players": [
+      {
+        "sleeper_id": "1350",
+        "name": "Rudy Gobert",
+        "team": "MIN",
+        "position": "C",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1747",
+        "name": "Jamal Murray",
+        "team": "DEN",
+        "position": "PG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1845",
+        "name": "Donovan Mitchell",
+        "team": "CLE",
+        "position": "SG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1970",
+        "name": "Luka Don\u010di\u0107",
+        "team": "LAL",
+        "position": "PG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2145",
+        "name": "Tre Jones",
+        "team": "CHI",
+        "position": "SG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2157",
+        "name": "Immanuel Quickley",
+        "team": "TOR",
+        "position": "PG",
+        "injury_status": "DTD"
+      },
+      {
+        "sleeper_id": "2233",
+        "name": "Naji Marshall",
+        "team": "DAL",
+        "position": "SF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2313",
+        "name": "Josh Giddey",
+        "team": "CHI",
+        "position": "PG",
+        "injury_status": "Out"
+      },
+      {
+        "sleeper_id": "2455",
+        "name": "Chet Holmgren",
+        "team": "OKC",
+        "position": "C",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2574",
+        "name": "Amen Thompson",
+        "team": "HOU",
+        "position": "SG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2590",
+        "name": "Anthony Black",
+        "team": "ORL",
+        "position": "PG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2752",
+        "name": "Cam Spencer",
+        "team": "MEM",
+        "position": "SG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "4737",
+        "name": "VJ Edgecombe",
+        "team": "PHI",
+        "position": "SG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "4740",
+        "name": "Kon Knueppel",
+        "team": "CHA",
+        "position": "SF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "4751",
+        "name": "Derik Queen",
+        "team": "NOP",
+        "position": "C",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "4755",
+        "name": "Collin Murray-Boyles",
+        "team": "TOR",
+        "position": "PF",
+        "injury_status": null
+      }
+    ],
+    "starters": [
+      "1970",
+      "1747",
+      "2145",
+      "2233",
+      "2455",
+      "2574",
+      "4751",
+      "1845",
+      "2590",
+      "4740"
+    ]
+  },
+  {
+    "roster_id": 2,
+    "owner_id": "1281007971471466496",
+    "owner_name": "MoisesNS",
+    "team_name": "BabyFacedAssassin",
+    "record": "10-2",
+    "players": [
+      {
+        "sleeper_id": "1272",
+        "name": "Anthony Davis",
+        "team": "DAL",
+        "position": "C",
+        "injury_status": "Out"
+      },
+      {
+        "sleeper_id": "1308",
+        "name": "Kawhi Leonard",
+        "team": "LAC",
+        "position": "PF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1583",
+        "name": "Jusuf Nurki\u0107",
+        "team": "UTA",
+        "position": "C",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1585",
+        "name": "Aaron Gordon",
+        "team": "DEN",
+        "position": "PF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1595",
+        "name": "Myles Turner",
+        "team": "MIL",
+        "position": "C",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1716",
+        "name": "Pascal Siakam",
+        "team": "IND",
+        "position": "PF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1718",
+        "name": "Jakob Poeltl",
+        "team": "TOR",
+        "position": "C",
+        "injury_status": "Out"
+      },
+      {
+        "sleeper_id": "1831",
+        "name": "OG Anunoby",
+        "team": "NYK",
+        "position": "PF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1846",
+        "name": "Bam Adebayo",
+        "team": "MIA",
+        "position": "C",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1975",
+        "name": "Mikal Bridges",
+        "team": "NYK",
+        "position": "SF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2255",
+        "name": "Ayo Dosunmu",
+        "team": "CHI",
+        "position": "SG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2267",
+        "name": "Cade Cunningham",
+        "team": "DET",
+        "position": "PG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2281",
+        "name": "Santi Aldama",
+        "team": "MEM",
+        "position": "PF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2284",
+        "name": "Jalen Johnson",
+        "team": "ATL",
+        "position": "PF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2461",
+        "name": "Andrew Nembhard",
+        "team": "IND",
+        "position": "SG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2568",
+        "name": "Brandon Miller",
+        "team": "CHA",
+        "position": "SF",
+        "injury_status": null
+      }
+    ],
+    "starters": [
+      "2267",
+      "2568",
+      "2461",
+      "1716",
+      "1846",
+      "1308",
+      "1583",
+      "2281",
+      "2284",
+      "1585"
+    ]
+  },
+  {
+    "roster_id": 3,
+    "owner_id": "856126232465633280",
+    "owner_name": "samymok",
+    "team_name": "samymok",
+    "record": "1-11",
+    "players": [
+      {
+        "sleeper_id": "1074",
+        "name": "Paul George",
+        "team": "PHI",
+        "position": "SF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1590",
+        "name": "Kristaps Porzi\u0146\u0123is",
+        "team": "ATL",
+        "position": "C",
+        "injury_status": "Out"
+      },
+      {
+        "sleeper_id": "1613",
+        "name": "Karl-Anthony Towns",
+        "team": "NYK",
+        "position": "C",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1713",
+        "name": "Dejounte Murray",
+        "team": "NOP",
+        "position": "PG",
+        "injury_status": "Out"
+      },
+      {
+        "sleeper_id": "1787",
+        "name": "Jarrett Allen",
+        "team": "CLE",
+        "position": "C",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1830",
+        "name": "Derrick White",
+        "team": "BOS",
+        "position": "SG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1872",
+        "name": "De'Aaron Fox",
+        "team": "SAS",
+        "position": "PG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1883",
+        "name": "Wendell Carter",
+        "team": "ORL",
+        "position": "C",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1997",
+        "name": "Daniel Gafford",
+        "team": "DAL",
+        "position": "C",
+        "injury_status": "GTD"
+      },
+      {
+        "sleeper_id": "2029",
+        "name": "P.J. Washington",
+        "team": "DAL",
+        "position": "PF",
+        "injury_status": "GTD"
+      },
+      {
+        "sleeper_id": "2036",
+        "name": "Naz Reid",
+        "team": "MIN",
+        "position": "C",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2054",
+        "name": "Zion Williamson",
+        "team": "NOP",
+        "position": "PF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2133",
+        "name": "Anthony Edwards",
+        "team": "MIN",
+        "position": "SG",
+        "injury_status": "DTD"
+      },
+      {
+        "sleeper_id": "2449",
+        "name": "Dyson Daniels",
+        "team": "ATL",
+        "position": "PG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2733",
+        "name": "Alex Sarr",
+        "team": "WAS",
+        "position": "C",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2835",
+        "name": "Matas Buzelis",
+        "team": "CHI",
+        "position": "PF",
+        "injury_status": null
+      }
+    ],
+    "starters": [
+      "1872",
+      "2449",
+      "1074",
+      "2054",
+      "1613",
+      "2835",
+      "1590",
+      "1997",
+      "1830",
+      "2733"
+    ]
+  },
+  {
+    "roster_id": 4,
+    "owner_id": "1284900627549257728",
+    "owner_name": "ilanattie",
+    "team_name": "ilanattie",
+    "record": "7-5",
+    "players": [
+      {
+        "sleeper_id": "1085",
+        "name": "Stephen Curry",
+        "team": "GSW",
+        "position": "PG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1265",
+        "name": "Jrue Holiday",
+        "team": "POR",
+        "position": "PG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1321",
+        "name": "DeMar DeRozan",
+        "team": "SAC",
+        "position": "SG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1380",
+        "name": "Giannis Antetokounmpo",
+        "team": "MIL",
+        "position": "PF",
+        "injury_status": "GTD"
+      },
+      {
+        "sleeper_id": "1535",
+        "name": "Julius Randle",
+        "team": "MIN",
+        "position": "PF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1648",
+        "name": "Devin Booker",
+        "team": "PHX",
+        "position": "SG",
+        "injury_status": "Out"
+      },
+      {
+        "sleeper_id": "1752",
+        "name": "Lauri Markkanen",
+        "team": "UTA",
+        "position": "PF",
+        "injury_status": "Out"
+      },
+      {
+        "sleeper_id": "2055",
+        "name": "Nickeil Alexander-Walker",
+        "team": "ATL",
+        "position": "SG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2086",
+        "name": "Tyler Herro",
+        "team": "MIA",
+        "position": "SG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2285",
+        "name": "Trey Murphy",
+        "team": "NOP",
+        "position": "SF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2474",
+        "name": "Moussa Diabat\u00e9",
+        "team": "CHA",
+        "position": "C",
+        "injury_status": "GTD"
+      },
+      {
+        "sleeper_id": "2580",
+        "name": "Keyonte George",
+        "team": "UTA",
+        "position": "PG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2714",
+        "name": "Kyshawn George",
+        "team": "WAS",
+        "position": "SG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2718",
+        "name": "Zach Edey",
+        "team": "MEM",
+        "position": "C",
+        "injury_status": "Out"
+      },
+      {
+        "sleeper_id": "4748",
+        "name": "Cedric Coward",
+        "team": "MEM",
+        "position": "PG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "4760",
+        "name": "Cooper Flagg",
+        "team": "DAL",
+        "position": "SF",
+        "injury_status": "GTD"
+      }
+    ],
+    "starters": [
+      "2580",
+      "1321",
+      "2055",
+      "4760",
+      "1752",
+      "2285",
+      "1535",
+      "1380",
+      "2714",
+      "2086"
+    ]
+  },
+  {
+    "roster_id": 5,
+    "owner_id": "1125462480777555968",
+    "owner_name": "alanchz",
+    "team_name": "Bola de tarados",
+    "record": "3-9",
+    "players": [
+      {
+        "sleeper_id": "1362",
+        "name": "LeBron James",
+        "team": "LAL",
+        "position": "PF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1486",
+        "name": "Nikola Vu\u010devi\u0107",
+        "team": "CHI",
+        "position": "C",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1697",
+        "name": "Ivica Zubac",
+        "team": "LAC",
+        "position": "C",
+        "injury_status": "DTD"
+      },
+      {
+        "sleeper_id": "1739",
+        "name": "Domantas Sabonis",
+        "team": "SAC",
+        "position": "C",
+        "injury_status": "Out"
+      },
+      {
+        "sleeper_id": "1913",
+        "name": "Miles Bridges",
+        "team": "CHA",
+        "position": "PF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1988",
+        "name": "Michael Porter",
+        "team": "BKN",
+        "position": "PF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2007",
+        "name": "Darius Garland",
+        "team": "CLE",
+        "position": "PG",
+        "injury_status": "DTD"
+      },
+      {
+        "sleeper_id": "2136",
+        "name": "Onyeka Okongwu",
+        "team": "ATL",
+        "position": "C",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2142",
+        "name": "Payton Pritchard",
+        "team": "BOS",
+        "position": "PG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2259",
+        "name": "Evan Mobley",
+        "team": "CLE",
+        "position": "C",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2304",
+        "name": "Franz Wagner",
+        "team": "ORL",
+        "position": "SF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2438",
+        "name": "Jalen Duren",
+        "team": "DET",
+        "position": "C",
+        "injury_status": "GTD"
+      },
+      {
+        "sleeper_id": "2440",
+        "name": "Mark Williams",
+        "team": "PHX",
+        "position": "C",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2454",
+        "name": "Peyton Watson",
+        "team": "DEN",
+        "position": "SF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2476",
+        "name": "Shaedon Sharpe",
+        "team": "POR",
+        "position": "SG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2728",
+        "name": "Donovan Clingan",
+        "team": "POR",
+        "position": "C",
+        "injury_status": null
+      }
+    ],
+    "starters": [
+      "2142",
+      "2476",
+      "2007",
+      "1362",
+      "2259",
+      "2454",
+      "1486",
+      "2440",
+      "2438",
+      "2136"
+    ]
+  },
+  {
+    "roster_id": 6,
+    "owner_id": "1268649449173811200",
+    "owner_name": "grabri",
+    "team_name": "Wuf wuf el croco",
+    "record": "7-5",
+    "players": [
+      {
+        "sleeper_id": "1240",
+        "name": "James Harden",
+        "team": "LAC",
+        "position": "PG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1433",
+        "name": "Kevin Durant",
+        "team": "HOU",
+        "position": "PF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1434",
+        "name": "Russell Westbrook",
+        "team": "SAC",
+        "position": "PG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1658",
+        "name": "Nikola Joki\u0107",
+        "team": "DEN",
+        "position": "C",
+        "injury_status": "Out"
+      },
+      {
+        "sleeper_id": "1698",
+        "name": "Brandon Ingram",
+        "team": "TOR",
+        "position": "SF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1934",
+        "name": "Isaiah Hartenstein",
+        "team": "OKC",
+        "position": "C",
+        "injury_status": "Out"
+      },
+      {
+        "sleeper_id": "1964",
+        "name": "Donte DiVincenzo",
+        "team": "MIN",
+        "position": "SG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1974",
+        "name": "Deandre Ayton",
+        "team": "LAL",
+        "position": "C",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2009",
+        "name": "Kevin Porter",
+        "team": "MIL",
+        "position": "PG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2032",
+        "name": "Nic Claxton",
+        "team": "BKN",
+        "position": "C",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2040",
+        "name": "Ja Morant",
+        "team": "MEM",
+        "position": "PG",
+        "injury_status": "Out"
+      },
+      {
+        "sleeper_id": "2143",
+        "name": "Desmond Bane",
+        "team": "ORL",
+        "position": "SG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2316",
+        "name": "Austin Reaves",
+        "team": "LAL",
+        "position": "SG",
+        "injury_status": "Out"
+      },
+      {
+        "sleeper_id": "2453",
+        "name": "Jalen Williams",
+        "team": "OKC",
+        "position": "SF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2463",
+        "name": "Ryan Rollins",
+        "team": "MIL",
+        "position": "PG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2566",
+        "name": "Ausar Thompson",
+        "team": "DET",
+        "position": "SG",
+        "injury_status": null
+      }
+    ],
+    "starters": [
+      "1240",
+      "2453",
+      "2009",
+      "1698",
+      "2032",
+      "1433",
+      "1974",
+      "2143",
+      "2566",
+      "2463"
+    ]
+  },
+  {
+    "roster_id": 7,
+    "owner_id": "1281389008613539840",
+    "owner_name": "Negroro",
+    "team_name": "Negroro",
+    "record": "8-4",
+    "players": [
+      {
+        "sleeper_id": "1000",
+        "name": "Jimmy Butler",
+        "team": "GSW",
+        "position": "SF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1511",
+        "name": "Joel Embiid",
+        "team": "PHI",
+        "position": "C",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1525",
+        "name": "Andrew Wiggins",
+        "team": "MIA",
+        "position": "SF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1526",
+        "name": "Zach LaVine",
+        "team": "SAC",
+        "position": "SG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1711",
+        "name": "Jaylen Brown",
+        "team": "BOS",
+        "position": "SF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1809",
+        "name": "John Collins",
+        "team": "LAC",
+        "position": "PF",
+        "injury_status": "DTD"
+      },
+      {
+        "sleeper_id": "1998",
+        "name": "Coby White",
+        "team": "CHI",
+        "position": "SG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2126",
+        "name": "Tyrese Maxey",
+        "team": "PHI",
+        "position": "PG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2159",
+        "name": "Isaiah Stewart",
+        "team": "DET",
+        "position": "C",
+        "injury_status": "GTD"
+      },
+      {
+        "sleeper_id": "2181",
+        "name": "Deni Avdija",
+        "team": "POR",
+        "position": "PF",
+        "injury_status": "Out"
+      },
+      {
+        "sleeper_id": "2289",
+        "name": "Scottie Barnes",
+        "team": "TOR",
+        "position": "PF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2445",
+        "name": "Jabari Smith",
+        "team": "HOU",
+        "position": "PF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2456",
+        "name": "Keegan Murray",
+        "team": "SAC",
+        "position": "PF",
+        "injury_status": "Out"
+      },
+      {
+        "sleeper_id": "2565",
+        "name": "Bilal Coulibaly",
+        "team": "WAS",
+        "position": "PF",
+        "injury_status": "DTD"
+      },
+      {
+        "sleeper_id": "2577",
+        "name": "Victor Wembanyama",
+        "team": "SAS",
+        "position": "C",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2722",
+        "name": "Stephon Castle",
+        "team": "SAS",
+        "position": "SG",
+        "injury_status": null
+      }
+    ],
+    "starters": [
+      "2126",
+      "1000",
+      "2722",
+      "1711",
+      "2289",
+      "2565",
+      "2159",
+      "1525",
+      "1526",
+      "2577"
+    ]
+  },
+  {
+    "roster_id": 8,
+    "owner_id": "1284947035887267840",
+    "owner_name": "DonFryeee",
+    "team_name": "DonFryeee",
+    "record": "7-5",
+    "players": [
+      {
+        "sleeper_id": "1054",
+        "name": "Kyrie Irving",
+        "team": "DAL",
+        "position": "PG",
+        "injury_status": "Out"
+      },
+      {
+        "sleeper_id": "1450",
+        "name": "CJ McCollum",
+        "team": "ATL",
+        "position": "SG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1637",
+        "name": "Norman Powell",
+        "team": "MIA",
+        "position": "SF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1803",
+        "name": "Josh Hart",
+        "team": "NYK",
+        "position": "SG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1822",
+        "name": "Jayson Tatum",
+        "team": "BOS",
+        "position": "SF",
+        "injury_status": "Out"
+      },
+      {
+        "sleeper_id": "1924",
+        "name": "Jaren Jackson",
+        "team": "MEM",
+        "position": "C",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1945",
+        "name": "Trae Young",
+        "team": "WAS",
+        "position": "PG",
+        "injury_status": "Out"
+      },
+      {
+        "sleeper_id": "1957",
+        "name": "Shai Gilgeous-Alexander",
+        "team": "OKC",
+        "position": "PG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1967",
+        "name": "Jalen Brunson",
+        "team": "NYK",
+        "position": "PG",
+        "injury_status": "Out"
+      },
+      {
+        "sleeper_id": "2001",
+        "name": "RJ Barrett",
+        "team": "TOR",
+        "position": "SF",
+        "injury_status": "Out"
+      },
+      {
+        "sleeper_id": "2135",
+        "name": "Jaden McDaniels",
+        "team": "MIN",
+        "position": "SF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2179",
+        "name": "LaMelo Ball",
+        "team": "CHA",
+        "position": "PG",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2308",
+        "name": "Alperen Sengun",
+        "team": "HOU",
+        "position": "C",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2309",
+        "name": "Jalen Green",
+        "team": "PHX",
+        "position": "SG",
+        "injury_status": "Out"
+      },
+      {
+        "sleeper_id": "2458",
+        "name": "Paolo Banchero",
+        "team": "ORL",
+        "position": "PF",
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "2581",
+        "name": "Brice Sensabaugh",
+        "team": "UTA",
+        "position": "SF",
+        "injury_status": null
+      }
+    ],
+    "starters": [
+      "1957",
+      "1637",
+      "2179",
+      "2135",
+      "2458",
+      "1924",
+      "2308",
+      "1803",
+      "1450",
+      "2581"
+    ]
+  }
+]

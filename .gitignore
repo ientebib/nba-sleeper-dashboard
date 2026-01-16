@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+
+# Environment
+.env
+.env.local
+.env.*.local
+*.env
+
+# Data files (sensitive/large)
+data/*.json
+data/*.csv
+data/*.parquet
+
+# Cache
+.cache/
+*.pyc
+__pycache__/
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python virtual environment
+venv/
+.venv/
+env/
+
+# Credentials and secrets
+*.pem
+*.key
+credentials.json
+
+# LaunchAgent (local machine specific)
+com.sleepr.refresh.plist

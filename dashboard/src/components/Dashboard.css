@@ -1,0 +1,577 @@
+/* Dashboard - TE Industrial Design */
+
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.dashboard.standings-focus {
+  gap: 6px;
+}
+
+/* ===== HEADER ===== */
+.standings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+  margin-bottom: 4px;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-title h2 {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.header-title svg {
+  color: var(--accent-primary);
+  width: 18px;
+  height: 18px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* ===== FILTERS PANEL ===== */
+.filters-panel {
+  display: flex;
+  gap: 16px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filter-group label {
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.filter-group select {
+  padding: 6px 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  cursor: pointer;
+}
+
+.filter-group select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+/* ===== POWER CHART CARD ===== */
+.power-chart-card {
+  min-height: 200px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.power-chart-card .card-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+}
+
+.chart-container {
+  padding: 8px;
+}
+
+/* ===== STANDINGS TABLE ===== */
+.standings-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.standings-card.enhanced {
+  overflow: visible;
+}
+
+.card-subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.standings-table-wrapper {
+  overflow-x: auto;
+  max-height: calc(100vh - 240px);
+  overflow-y: auto;
+}
+
+.standings-table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+}
+
+.standings-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg-tertiary);
+}
+
+.standings-table th {
+  padding: 6px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.standings-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.standings-table th.sortable:hover {
+  color: var(--accent-primary);
+}
+
+.standings-table th.sortable.active {
+  color: var(--accent-primary);
+}
+
+.standings-table th.sortable span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.standings-table th.sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 11;
+  background: var(--bg-tertiary);
+}
+
+.standings-table th.team-col {
+  left: 50px;
+}
+
+.standings-table td {
+  padding: 6px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.standings-table td.sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  background: var(--bg-card);
+}
+
+.standings-table td.team-col {
+  left: 50px;
+}
+
+/* Team Row */
+.team-row {
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.team-row:hover {
+  background: var(--bg-hover);
+}
+
+.team-row.expanded {
+  background: var(--bg-tertiary);
+}
+
+.team-row.playoff td:first-child {
+  border-left: 3px solid var(--accent-green);
+}
+
+/* Team Info Cell */
+.team-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.team-name {
+  font-weight: 600;
+  font-size: 0.6875rem;
+  color: var(--text-primary);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.owner-name {
+  font-size: 0.5rem;
+  color: var(--text-muted);
+}
+
+/* Stat Values */
+.stat-highlight {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.6875rem;
+}
+
+.stat-highlight.primary {
+  color: var(--accent-green);
+}
+
+.stat-highlight.total {
+  color: var(--accent-primary);
+}
+
+.stat-value {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  color: var(--text-secondary);
+}
+
+.stat-value.ceiling {
+  color: var(--accent-primary);
+}
+
+.stat-value.floor {
+  color: var(--accent-yellow);
+}
+
+/* Elite/Reliable Badges */
+.elite-badge,
+.reliable-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 4px;
+  font-weight: 700;
+  font-size: 0.6875rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+}
+
+.elite-badge.high {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: var(--accent-green);
+}
+
+.elite-badge.mid {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: var(--accent-primary);
+}
+
+.reliable-badge.high {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: var(--accent-green);
+}
+
+.reliable-badge.mid {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: var(--accent-primary);
+}
+
+/* Consistency Bar */
+.consistency-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 70px;
+}
+
+.consistency-bar > div:first-child {
+  flex: 1;
+  height: 4px;
+  background: var(--bg-tertiary);
+  overflow: hidden;
+}
+
+.consistency-fill {
+  height: 100%;
+  background: var(--accent-primary);
+  transition: width 0.2s ease;
+}
+
+.consistency-bar span {
+  font-size: 0.5625rem;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  min-width: 26px;
+  text-align: right;
+}
+
+/* Rank Badge */
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  font-weight: 700;
+  font-size: 0.5625rem;
+  color: var(--text-secondary);
+}
+
+.rank-badge.playoff {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: var(--accent-green);
+}
+
+/* Record Display */
+.record {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.wins {
+  color: var(--accent-green);
+}
+
+.losses {
+  color: var(--accent-red);
+}
+
+.sep {
+  color: var(--text-muted);
+}
+
+/* Top Player Cell */
+.top-player-cell {
+  color: var(--accent-primary);
+  cursor: pointer;
+  font-size: 0.625rem;
+  font-weight: 500;
+}
+
+.top-player-cell:hover {
+  text-decoration: underline;
+}
+
+/* ===== EXPANDED ROW ===== */
+.expanded-row td {
+  padding: 0 !important;
+  background: var(--bg-secondary);
+}
+
+.team-roster-detail {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.roster-section h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.roster-section h4 svg {
+  width: 16px;
+  height: 16px;
+  color: var(--accent-primary);
+}
+
+.roster-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.bench-grid {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+/* Roster Player Card - Enhanced */
+.roster-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.roster-player:hover {
+  border-color: var(--accent-primary);
+  background: var(--bg-hover);
+}
+
+.roster-player.bench {
+  background: var(--bg-tertiary);
+  opacity: 0.85;
+}
+
+.roster-player .player-rank {
+  width: 24px;
+  height: 24px;
+  font-size: 0.625rem;
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--accent-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+  border-radius: 4px;
+}
+
+.roster-player .player-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.roster-player .player-name {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roster-player .player-meta {
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  color: var(--text-muted);
+}
+
+.player-stats-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.player-stats-mini .lockin-value {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--accent-green);
+}
+
+.pct-badge {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  padding: 2px 6px;
+  font-weight: 600;
+  border-radius: 3px;
+}
+
+.pct-badge.good {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--accent-green);
+}
+
+.pct-badge.ok {
+  background: rgba(234, 179, 8, 0.15);
+  color: var(--accent-yellow);
+}
+
+.pct-badge.bad {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--accent-red);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1400px) {
+  .roster-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .bench-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 1200px) {
+  .roster-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .bench-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .standings-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .roster-grid,
+  .bench-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .filters-panel {
+    flex-direction: column;
+  }
+}
