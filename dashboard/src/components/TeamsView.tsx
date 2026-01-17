@@ -6,6 +6,8 @@ import {
   TrendingDown,
   ChevronDown,
   ChevronRight,
+  ChevronUp,
+  ArrowUpDown,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -24,9 +26,30 @@ interface Props {
   onTeamSelect?: (team: TeamAnalytics) => void;
 }
 
+type RosterSortKey = 'player' | 'nba_team' | 'position' | 'totalGames' | 'expectedLockin' | 'avgFpts' | 'lockinCeiling' | 'lockinTrendPct';
+type SortDir = 'asc' | 'desc';
+
 export default function TeamsView({ teams, onPlayerSelect, onTeamSelect }: Props) {
   const [expandedTeam, setExpandedTeam] = useState<number | null>(null);
   const [selectedTeams, setSelectedTeams] = useState<number[]>([]);
+  const [rosterSortKey, setRosterSortKey] = useState<RosterSortKey>('expectedLockin');
+  const [rosterSortDir, setRosterSortDir] = useState<SortDir>('desc');
+
+  const handleRosterSort = (key: RosterSortKey) => {
+    if (rosterSortKey === key) {
+      setRosterSortDir(rosterSortDir === 'desc' ? 'asc' : 'desc');
+    } else {
+      setRosterSortKey(key);
+      setRosterSortDir('desc');
+    }
+  };
+
+  const RosterSortIcon = ({ column }: { column: RosterSortKey }) => {
+    if (rosterSortKey !== column) return <ArrowUpDown size={12} className="sort-icon inactive" />;
+    return rosterSortDir === 'desc'
+      ? <ChevronDown size={12} className="sort-icon active" />
+      : <ChevronUp size={12} className="sort-icon active" />;
+  };
 
   // Team comparison radar data
   const maxLockin = Math.max(...teams.map(t => t.totalExpectedLockin));
@@ -58,6 +81,36 @@ export default function TeamsView({ teams, onPlayerSelect, onTeamSelect }: Props
     } else if (selectedTeams.length < 2) {
       setSelectedTeams([...selectedTeams, rosterId]);
     }
+  };
+
+  const sortRosterPlayers = (players: PlayerAnalytics[]) => {
+    return [...players].sort((a, b) => {
+      let aVal: string | number;
+      let bVal: string | number;
+
+      switch (rosterSortKey) {
+        case 'player':
+          aVal = a.player.toLowerCase();
+          bVal = b.player.toLowerCase();
+          break;
+        case 'nba_team':
+          aVal = a.nba_team.toLowerCase();
+          bVal = b.nba_team.toLowerCase();
+          break;
+        case 'position':
+          aVal = a.position;
+          bVal = b.position;
+          break;
+        default:
+          aVal = a[rosterSortKey] as number;
+          bVal = b[rosterSortKey] as number;
+      }
+
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return rosterSortDir === 'desc' ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
+      }
+      return rosterSortDir === 'desc' ? (bVal as number) - (aVal as number) : (aVal as number) - (bVal as number);
+    });
   };
 
   return (
@@ -165,18 +218,34 @@ export default function TeamsView({ teams, onPlayerSelect, onTeamSelect }: Props
                 <table className="data-table roster-table">
                   <thead>
                     <tr>
-                      <th>Player</th>
-                      <th>NBA</th>
-                      <th>Pos</th>
-                      <th>GP</th>
-                      <th>Exp Lock-In</th>
-                      <th>Avg FPTS</th>
-                      <th>Ceiling</th>
-                      <th>Trend</th>
+                      <th className="sortable" onClick={() => handleRosterSort('player')}>
+                        Player <RosterSortIcon column="player" />
+                      </th>
+                      <th className="sortable" onClick={() => handleRosterSort('nba_team')}>
+                        NBA <RosterSortIcon column="nba_team" />
+                      </th>
+                      <th className="sortable" onClick={() => handleRosterSort('position')}>
+                        Pos <RosterSortIcon column="position" />
+                      </th>
+                      <th className="sortable" onClick={() => handleRosterSort('totalGames')}>
+                        GP <RosterSortIcon column="totalGames" />
+                      </th>
+                      <th className="sortable" onClick={() => handleRosterSort('expectedLockin')}>
+                        Exp Lock-In <RosterSortIcon column="expectedLockin" />
+                      </th>
+                      <th className="sortable" onClick={() => handleRosterSort('avgFpts')}>
+                        Avg FPTS <RosterSortIcon column="avgFpts" />
+                      </th>
+                      <th className="sortable" onClick={() => handleRosterSort('lockinCeiling')}>
+                        Ceiling <RosterSortIcon column="lockinCeiling" />
+                      </th>
+                      <th className="sortable" onClick={() => handleRosterSort('lockinTrendPct')}>
+                        Trend <RosterSortIcon column="lockinTrendPct" />
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {[...team.players].sort((a, b) => b.expectedLockin - a.expectedLockin).map(player => (
+                    {sortRosterPlayers(team.players).map(player => (
                       <tr key={player.sleeper_id} onClick={() => onPlayerSelect(player)}>
                         <td>
                           <div className="player-cell">

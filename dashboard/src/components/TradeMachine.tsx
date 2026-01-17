@@ -27,6 +27,10 @@ import {
   Legend,
 } from 'recharts';
 import type { PlayerAnalytics, TeamAnalytics } from '../types';
+import {
+  calcPlayerPeriodStats,
+  filterByInjuryStatus,
+} from '../lib/analytics';
 import './TradeMachine.css';
 
 interface Props {
@@ -34,13 +38,19 @@ interface Props {
   teams: TeamAnalytics[];
 }
 
+type TimePeriod = 'all' | 'L3W' | 'L4W' | 'L5W' | 'L6W' | 'L8W';
+type StreamingOption = 'top1' | 'top3' | 'top5' | 'bottom25';
+
+interface StreamerSlot {
+  option: StreamingOption;
+  value: number;
+}
+
 interface TradeSide {
   team: string;
   players: PlayerAnalytics[];
-  streamerCount: number; // Number of streamer slots added
+  streamers: StreamerSlot[]; // Streamer slots with their options
 }
-
-type TimePeriod = 'all' | 'L3W' | 'L4W' | 'L5W' | 'L6W' | 'L8W';
 
 const TIME_PERIODS: { value: TimePeriod; label: string; weeks: number }[] = [
   { value: 'all', label: 'Season', weeks: 99 },
@@ -51,55 +61,26 @@ const TIME_PERIODS: { value: TimePeriod; label: string; weeks: number }[] = [
   { value: 'L8W', label: '8W', weeks: 8 },
 ];
 
-// Calculate stats for a player filtered by weeks
-function calcPlayerStats(player: PlayerAnalytics, maxWeeks: number) {
-  const currentWeek = Math.max(...player.weeklyStats.map(w => w.week));
-  const minWeek = maxWeeks === 99 ? 1 : currentWeek - maxWeeks + 1;
-
-  const filteredWeeks = player.weeklyStats.filter(w => w.week >= minWeek);
-
-  if (filteredWeeks.length === 0) {
-    return {
-      expectedLockin: 0,
-      avgFpts: 0,
-      ceiling: 0,
-      floor: 0,
-      games: 0,
-      weeks: 0,
-      avgMinutes: 0,
-    };
-  }
-
-  const maxFptsList = filteredWeeks.map(w => w.maxFpts);
-  const avgFptsList = filteredWeeks.map(w => w.avgFpts);
-  const minutesList = filteredWeeks.map(w => w.avgMinutes);
-
-  return {
-    expectedLockin: maxFptsList.reduce((a, b) => a + b, 0) / maxFptsList.length,
-    avgFpts: avgFptsList.reduce((a, b) => a + b, 0) / avgFptsList.length,
-    ceiling: Math.max(...maxFptsList),
-    floor: Math.min(...maxFptsList),
-    games: filteredWeeks.reduce((sum, w) => sum + w.games, 0),
-    weeks: filteredWeeks.length,
-    avgMinutes: minutesList.reduce((a, b) => a + b, 0) / minutesList.length,
-  };
-}
-
-type StreamingOption = 'top1' | 'top3' | 'top5' | 'bottom25';
-
-const STREAMING_OPTIONS: { value: StreamingOption; label: string }[] = [
-  { value: 'top1', label: 'Top FA' },
-  { value: 'top3', label: 'Top 3 FA Avg' },
-  { value: 'top5', label: 'Top 5 FA Avg' },
-  { value: 'bottom25', label: 'Streaming Line' },
+const STREAMING_OPTIONS: { value: StreamingOption; label: string; description: string }[] = [
+  { value: 'top1', label: 'Top FA', description: 'Best free agent lock-in' },
+  { value: 'top3', label: 'Top 3 FA', description: 'Avg of top 3 free agents' },
+  { value: 'top5', label: 'Top 5 FA', description: 'Avg of top 5 free agents' },
+  { value: 'bottom25', label: 'Stream Line', description: 'Bottom 25% of rostered' },
 ];
 
+// Use shared calculation from analytics.ts
+const calcPlayerStats = calcPlayerPeriodStats;
+
 export default function TradeMachine({ players, teams }: Props) {
-  const [side1, setSide1] = useState<TradeSide>({ team: '', players: [], streamerCount: 0 });
-  const [side2, setSide2] = useState<TradeSide>({ team: '', players: [], streamerCount: 0 });
+  const [side1, setSide1] = useState<TradeSide>({ team: '', players: [], streamers: [] });
+  const [side2, setSide2] = useState<TradeSide>({ team: '', players: [], streamers: [] });
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('L4W');
-  const [includeStreaming, setIncludeStreaming] = useState(true);
-  const [streamingOption, setStreamingOption] = useState<StreamingOption>('top3');
+  const [showStreamerMenu, setShowStreamerMenu] = useState<1 | 2 | null>(null);
+
+  // Safe accessors for arrays that might be undefined during state transitions
+  const side1Players = side1.players || [];
+  const side2Players = side2.players || [];
+  const side2Streamers = side2.streamers || [];
 
   const periodConfig = TIME_PERIODS.find(p => p.value === timePeriod)!;
 
@@ -109,9 +90,13 @@ export default function TradeMachine({ players, teams }: Props) {
   }, [teams]);
 
   // Get top free agents sorted by expected lock-in
+  // IMPORTANT: Filter out injured (OUT/IR) players - they're not actually available
   const topFreeAgents = useMemo(() => {
-    return players
-      .filter(p => !rosteredIds.has(p.sleeper_id))
+    const freeAgents = players.filter(p => !rosteredIds.has(p.sleeper_id));
+    // Filter out OUT and IR players - they're not available for streaming
+    const healthyFreeAgents = filterByInjuryStatus(freeAgents, true, true);
+
+    return healthyFreeAgents
       .map(p => ({
         player: p,
         stats: calcPlayerStats(p, periodConfig.weeks),
@@ -121,30 +106,44 @@ export default function TradeMachine({ players, teams }: Props) {
       .slice(0, 10); // Top 10 free agents
   }, [players, rosteredIds, periodConfig.weeks]);
 
-  // Calculate streaming value based on selected option
-  const streamingValue = useMemo(() => {
-    if (streamingOption === 'bottom25') {
-      // Original logic - bottom 25% of rostered players
-      const allPlayerStats = players
-        .filter(p => rosteredIds.has(p.sleeper_id))
-        .map(p => calcPlayerStats(p, periodConfig.weeks))
-        .filter(s => s.expectedLockin > 0);
+  // Get streaming values for all options (for display in menu)
+  const streamingValues = useMemo(() => {
+    const calcStreamingValue = (option: StreamingOption): number => {
+      if (option === 'bottom25') {
+        // Bottom 25% of rostered players
+        const allPlayerStats = players
+          .filter(p => rosteredIds.has(p.sleeper_id))
+          .map(p => calcPlayerStats(p, periodConfig.weeks))
+          .filter(s => s.expectedLockin > 0);
 
-      const sortedByLockin = [...allPlayerStats].sort((a, b) => a.expectedLockin - b.expectedLockin);
-      const bottom25 = sortedByLockin.slice(0, Math.floor(sortedByLockin.length * 0.25));
+        const sortedByLockin = [...allPlayerStats].sort((a, b) => a.expectedLockin - b.expectedLockin);
+        const bottom25 = sortedByLockin.slice(0, Math.floor(sortedByLockin.length * 0.25));
 
-      if (bottom25.length === 0) return 25;
-      return bottom25.reduce((sum, p) => sum + p.expectedLockin, 0) / bottom25.length;
-    }
+        if (bottom25.length === 0) return 25;
+        return bottom25.reduce((sum, p) => sum + p.expectedLockin, 0) / bottom25.length;
+      }
 
-    // Use top free agents
-    if (topFreeAgents.length === 0) return 25;
+      // Use top free agents
+      if (topFreeAgents.length === 0) return 25;
 
-    const count = streamingOption === 'top1' ? 1 : streamingOption === 'top3' ? 3 : 5;
-    const topN = topFreeAgents.slice(0, count);
+      const count = option === 'top1' ? 1 : option === 'top3' ? 3 : 5;
+      const topN = topFreeAgents.slice(0, count);
 
-    return topN.reduce((sum, p) => sum + p.stats.expectedLockin, 0) / topN.length;
-  }, [players, rosteredIds, topFreeAgents, streamingOption, periodConfig.weeks]);
+      return topN.reduce((sum, p) => sum + p.stats.expectedLockin, 0) / topN.length;
+    };
+
+    return {
+      top1: calcStreamingValue('top1'),
+      top3: calcStreamingValue('top3'),
+      top5: calcStreamingValue('top5'),
+      bottom25: calcStreamingValue('bottom25'),
+    };
+  }, [players, rosteredIds, topFreeAgents, periodConfig.weeks]);
+
+  // Helper to get streaming value by option (uses memoized values)
+  const getStreamingValue = (option: StreamingOption): number => {
+    return streamingValues[option];
+  };
 
   // Get players for a specific team, sorted by expected lock-in for the period
   const getTeamPlayers = (teamName: string) => {
@@ -159,9 +158,13 @@ export default function TradeMachine({ players, teams }: Props) {
 
   // Calculate totals for a side with period filtering (includes streamer value)
   const calculateTotals = (tradeSide: TradeSide) => {
-    const playerStats = tradeSide.players.map(p => calcPlayerStats(p, periodConfig.weeks));
+    const players = tradeSide.players || [];
+    const streamers = tradeSide.streamers || [];
+
+    const playerStats = players.map(p => calcPlayerStats(p, periodConfig.weeks));
     const playerLockin = playerStats.reduce((sum, s) => sum + s.expectedLockin, 0);
-    const streamerLockin = tradeSide.streamerCount * streamingValue;
+    // Recalculate streamer values based on current period (in case period changed)
+    const streamerLockin = streamers.reduce((sum, s) => sum + getStreamingValue(s.option), 0);
 
     return {
       lockin: playerLockin,
@@ -171,13 +174,13 @@ export default function TradeMachine({ players, teams }: Props) {
       ceiling: playerStats.reduce((sum, s) => sum + s.ceiling, 0),
       floor: playerStats.reduce((sum, s) => sum + s.floor, 0),
       avgMinutes: playerStats.reduce((sum, s) => sum + s.avgMinutes, 0),
-      players: tradeSide.players.length,
-      streamers: tradeSide.streamerCount,
+      players: players.length,
+      streamers: streamers.length,
     };
   };
 
-  const totals1 = useMemo(() => calculateTotals(side1), [side1, timePeriod, streamingValue]);
-  const totals2 = useMemo(() => calculateTotals(side2), [side2, timePeriod, streamingValue]);
+  const totals1 = useMemo(() => calculateTotals(side1), [side1, periodConfig.weeks, streamingValues]);
+  const totals2 = useMemo(() => calculateTotals(side2), [side2, periodConfig.weeks, streamingValues]);
 
   // Get per-player stats for display
   const getPlayerPeriodStats = (player: PlayerAnalytics) => {
@@ -185,53 +188,53 @@ export default function TradeMachine({ players, teams }: Props) {
   };
 
   // Add/remove streamer for a side
-  const addStreamer = (side: 1 | 2) => {
+  const addStreamer = (side: 1 | 2, option: StreamingOption) => {
+    const value = getStreamingValue(option);
+    const newStreamer: StreamerSlot = { option, value };
     if (side === 1) {
-      setSide1(prev => ({ ...prev, streamerCount: prev.streamerCount + 1 }));
+      setSide1(prev => ({ ...prev, streamers: [...prev.streamers, newStreamer] }));
     } else {
-      setSide2(prev => ({ ...prev, streamerCount: prev.streamerCount + 1 }));
+      setSide2(prev => ({ ...prev, streamers: [...prev.streamers, newStreamer] }));
+    }
+    setShowStreamerMenu(null);
+  };
+
+  const removeStreamer = (side: 1 | 2, index: number) => {
+    if (side === 1) {
+      setSide1(prev => ({ ...prev, streamers: prev.streamers.filter((_, i) => i !== index) }));
+    } else {
+      setSide2(prev => ({ ...prev, streamers: prev.streamers.filter((_, i) => i !== index) }));
     }
   };
 
-  const removeStreamer = (side: 1 | 2) => {
-    if (side === 1) {
-      setSide1(prev => ({ ...prev, streamerCount: Math.max(0, prev.streamerCount - 1) }));
-    } else {
-      setSide2(prev => ({ ...prev, streamerCount: Math.max(0, prev.streamerCount - 1) }));
-    }
-  };
-
-  // Trade analysis with CORRECT roster spot accounting
-  // Key insight: When you receive MORE players than you give, you LOSE roster spots (cost)
-  //              When you give MORE players than you receive, you GAIN roster spots (benefit)
+  // Trade analysis - SIMPLE and CORRECT
+  // - NO automatic streamer value - user must manually add streamers to "Side A Receives"
+  // - Streamers represent the value of open roster spots after trade
+  // - If you give 2 and receive 1, you have 1 open spot → add a streamer to "Receives" to model that value
   const analysis = useMemo(() => {
-    if (side1.players.length === 0 || side2.players.length === 0) return null;
+    const side1Players = side1.players || [];
+    const side2Players = side2.players || [];
+    const side2Streamers = side2.streamers || [];
 
-    const givingCount = side1.players.length + side1.streamerCount;
-    const receivingCount = side2.players.length + side2.streamerCount;
-    const rosterSpotDiff = givingCount - receivingCount; // positive = gaining spots, negative = losing spots
+    // Need at least one player on Gives side
+    if (side1Players.length === 0) return null;
+    // Need at least one player OR streamer on Receives side
+    if (side2Players.length === 0 && side2Streamers.length === 0) return null;
 
-    // What Side A is giving up (players they lose)
+    // Roster spot diff: positive = you give more than you receive = you gain open roster spots
+    const rosterSpotDiff = side1Players.length - side2Players.length;
+
+    // What Side A is giving up (players only - no streamers on give side)
     const sideAGivesPlayers = totals1.lockin;
-    const sideAGivesStreamers = totals1.streamerLockin;
 
-    // What Side A receives (players they gain)
+    // What Side A receives (players + streamers user added to model streaming value)
     const sideAReceivesPlayers = totals2.lockin;
     const sideAReceivesStreamers = totals2.streamerLockin;
 
-    // Roster spot adjustment:
-    // If giving 2, receiving 1: you GAIN 1 roster spot = +streamingValue
-    // If giving 1, receiving 2: you LOSE 1 roster spot = -streamingValue (opportunity cost)
-    let rosterSpotAdjustment = 0;
-    if (includeStreaming && rosterSpotDiff !== 0) {
-      rosterSpotAdjustment = rosterSpotDiff * streamingValue;
-    }
-
-    // Total value calculation for Side A:
-    // What you GET = players received + streamers on receive side + roster spots gained (if any)
-    // What you LOSE = players given + streamers on give side + roster spots lost (if any)
-    const totalReceived = sideAReceivesPlayers + sideAReceivesStreamers + Math.max(0, rosterSpotAdjustment);
-    const totalGiven = sideAGivesPlayers + sideAGivesStreamers + Math.max(0, -rosterSpotAdjustment);
+    // Simple calculation: NO auto-adjustment
+    // User adds streamers to "Receives" if they want to account for roster flexibility
+    const totalReceived = sideAReceivesPlayers + sideAReceivesStreamers;
+    const totalGiven = sideAGivesPlayers;
 
     const sideANet = totalReceived - totalGiven;
 
@@ -240,12 +243,12 @@ export default function TradeMachine({ players, teams }: Props) {
     else if (sideANet < -3) recommendation = 'FAVOR_2';
 
     // Compare trends
-    const side1Trends = side1.players.map(p => {
+    const side1Trends = side1Players.map(p => {
       const recent = calcPlayerStats(p, 3);
       const earlier = calcPlayerStats(p, 99);
       return recent.expectedLockin - earlier.expectedLockin;
     });
-    const side2Trends = side2.players.map(p => {
+    const side2Trends = side2Players.map(p => {
       const recent = calcPlayerStats(p, 3);
       const earlier = calcPlayerStats(p, 99);
       return recent.expectedLockin - earlier.expectedLockin;
@@ -261,15 +264,20 @@ export default function TradeMachine({ players, teams }: Props) {
       sideAGivesPlayers,
       sideAReceivesPlayers,
       rosterSpotDiff,
-      rosterSpotAdjustment,
+      streamersAdded: side2Streamers.length, // Track if user added streamers to account for open spots
       recommendation,
       avgTrend1,
       avgTrend2,
     };
-  }, [totals1, totals2, side1, side2, streamingValue, includeStreaming]);
+  }, [totals1, totals2, side1, side2, streamingValues]);
 
-  // Get weekly comparison data for chart
-  const getWeeklyComparison = () => {
+  // Get weekly comparison data for chart (memoized)
+  const weeklyComparisonData = useMemo(() => {
+    const side1Players = side1.players || [];
+    const side2Players = side2.players || [];
+
+    if (side1Players.length === 0 && side2Players.length === 0) return [];
+
     const currentWeek = Math.max(
       ...players.flatMap(p => p.weeklyStats.map(w => w.week))
     );
@@ -281,12 +289,12 @@ export default function TradeMachine({ players, teams }: Props) {
       let side1Total = 0;
       let side2Total = 0;
 
-      for (const p of side1.players) {
+      for (const p of side1Players) {
         const weekData = p.weeklyStats.find(ws => ws.week === w);
         if (weekData) side1Total += weekData.maxFpts;
       }
 
-      for (const p of side2.players) {
+      for (const p of side2Players) {
         const weekData = p.weeklyStats.find(ws => ws.week === w);
         if (weekData) side2Total += weekData.maxFpts;
       }
@@ -301,13 +309,16 @@ export default function TradeMachine({ players, teams }: Props) {
     }
 
     return weeks;
-  };
+  }, [side1.players, side2.players, players, periodConfig.weeks]);
 
-  // Per-player comparison data
-  const getPlayerComparisonData = () => {
+  // Per-player comparison data (memoized)
+  const playerComparisonData = useMemo(() => {
+    const side1Players = side1.players || [];
+    const side2Players = side2.players || [];
+
     const allPlayers = [
-      ...side1.players.map(p => ({ ...p, side: 'A' as const })),
-      ...side2.players.map(p => ({ ...p, side: 'B' as const })),
+      ...side1Players.map(p => ({ ...p, side: 'A' as const })),
+      ...side2Players.map(p => ({ ...p, side: 'B' as const })),
     ];
 
     return allPlayers.map(p => {
@@ -322,13 +333,13 @@ export default function TradeMachine({ players, teams }: Props) {
         trend: p.lockinTrend,
       };
     }).sort((a, b) => b.lockin - a.lockin);
-  };
+  }, [side1.players, side2.players, periodConfig.weeks]);
 
   const handleTeamChange = (side: 1 | 2, teamName: string) => {
     if (side === 1) {
-      setSide1({ team: teamName, players: [] });
+      setSide1({ team: teamName, players: [], streamers: [] });
     } else {
-      setSide2({ team: teamName, players: [] });
+      setSide2({ team: teamName, players: [], streamers: [] });
     }
   };
 
@@ -354,9 +365,9 @@ export default function TradeMachine({ players, teams }: Props) {
 
   const clearSide = (side: 1 | 2) => {
     if (side === 1) {
-      setSide1({ team: '', players: [], streamerCount: 0 });
+      setSide1({ team: '', players: [], streamers: [] });
     } else {
-      setSide2({ team: '', players: [], streamerCount: 0 });
+      setSide2({ team: '', players: [], streamers: [] });
     }
   };
 
@@ -390,46 +401,13 @@ export default function TradeMachine({ players, teams }: Props) {
                 </button>
               ))}
             </div>
-            <div className="streaming-controls">
-              <label className="streaming-toggle">
-                <input
-                  type="checkbox"
-                  checked={includeStreaming}
-                  onChange={e => setIncludeStreaming(e.target.checked)}
-                />
-                <span>Streaming</span>
-              </label>
-              {includeStreaming && (
-                <div className="streaming-option-selector">
-                  {STREAMING_OPTIONS.map(opt => (
-                    <button
-                      key={opt.value}
-                      className={`streaming-opt-btn ${streamingOption === opt.value ? 'active' : ''}`}
-                      onClick={() => setStreamingOption(opt.value)}
-                      title={opt.value === 'bottom25' ? 'Bottom 25% of rostered players' : `Average of ${opt.label}`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
         </div>
         <p className="trade-subtitle">
           Compare player values based on {periodConfig.label.toLowerCase()} performance
-          {includeStreaming && (
-            <span className="streaming-note">
-              {' '}• Streaming: ~{streamingValue.toFixed(1)} pts
-              {streamingOption !== 'bottom25' && topFreeAgents.length > 0 && (
-                <span className="streaming-fa-list">
-                  {' '}({topFreeAgents.slice(0, streamingOption === 'top1' ? 1 : streamingOption === 'top3' ? 3 : 5)
-                    .map(fa => fa.player.player.split(' ').pop())
-                    .join(', ')})
-                </span>
-              )}
-            </span>
-          )}
+          <span className="streaming-note">
+            {' '}• Top FA: {streamingValues.top1.toFixed(1)} | Top 3 Avg: {streamingValues.top3.toFixed(1)} | Top 5 Avg: {streamingValues.top5.toFixed(1)}
+          </span>
         </p>
       </div>
 
@@ -528,55 +506,13 @@ export default function TradeMachine({ players, teams }: Props) {
             )}
           </div>
 
-          {/* Add Streamer Button */}
-          {includeStreaming && (
-            <div className="add-streamer-section">
-              <button
-                className="btn btn-ghost add-streamer-btn"
-                onClick={() => addStreamer(1)}
-              >
-                <Zap size={14} />
-                Add Streamer (+{streamingValue.toFixed(1)})
-              </button>
-            </div>
-          )}
+          {/* No streamers on Gives side - streamers only make sense for the Receives side */}
 
-          {/* Streamers display */}
-          {side1.streamerCount > 0 && (
-            <div className="streamers-list">
-              {Array.from({ length: side1.streamerCount }).map((_, i) => (
-                <div key={i} className="streamer-item">
-                  <div className="streamer-main">
-                    <Zap size={14} />
-                    <span className="streamer-name">Streamer Slot</span>
-                    <button
-                      className="remove-btn"
-                      onClick={() => removeStreamer(1)}
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                  <div className="streamer-value">{streamingValue.toFixed(1)}</div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {(side1.players.length > 0 || side1.streamerCount > 0) && (
+          {side1Players.length > 0 && (
             <div className="side-total">
-              <div className="total-row">
-                <span>Players ({side1.players.length})</span>
-                <span className="total-value">{totals1.lockin.toFixed(1)}</span>
-              </div>
-              {side1.streamerCount > 0 && (
-                <div className="total-row">
-                  <span>Streamers ({side1.streamerCount})</span>
-                  <span className="total-value">{totals1.streamerLockin.toFixed(1)}</span>
-                </div>
-              )}
               <div className="total-row total-final">
                 <span>Total Giving</span>
-                <span className="total-value negative">{totals1.totalLockin.toFixed(1)}</span>
+                <span className="total-value negative">{totals1.lockin.toFixed(1)}</span>
               </div>
             </div>
           )}
@@ -680,49 +616,65 @@ export default function TradeMachine({ players, teams }: Props) {
             )}
           </div>
 
-          {/* Add Streamer Button */}
-          {includeStreaming && (
-            <div className="add-streamer-section">
-              <button
-                className="btn btn-ghost add-streamer-btn"
-                onClick={() => addStreamer(2)}
-              >
-                <Zap size={14} />
-                Add Streamer (+{streamingValue.toFixed(1)})
-              </button>
-            </div>
-          )}
+          {/* Add Streamer Button with Dropdown */}
+          <div className="add-streamer-section">
+            <button
+              className="btn btn-ghost add-streamer-btn"
+              onClick={() => setShowStreamerMenu(showStreamerMenu === 2 ? null : 2)}
+            >
+              <Zap size={14} />
+              Add Streamer
+            </button>
+            {showStreamerMenu === 2 && (
+              <div className="streamer-menu">
+                {STREAMING_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    className="streamer-menu-item"
+                    onClick={() => addStreamer(2, opt.value)}
+                  >
+                    <span className="menu-item-label">{opt.label}</span>
+                    <span className="menu-item-value">+{streamingValues[opt.value].toFixed(1)}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Streamers display */}
-          {side2.streamerCount > 0 && (
+          {side2Streamers.length > 0 && (
             <div className="streamers-list">
-              {Array.from({ length: side2.streamerCount }).map((_, i) => (
-                <div key={i} className="streamer-item">
-                  <div className="streamer-main">
-                    <Zap size={14} />
-                    <span className="streamer-name">Streamer Slot</span>
-                    <button
-                      className="remove-btn"
-                      onClick={() => removeStreamer(2)}
-                    >
-                      <X size={12} />
-                    </button>
+              {side2Streamers.map((streamer, i) => {
+                const optionLabel = STREAMING_OPTIONS.find(o => o.value === streamer.option)?.label || 'Streamer';
+                const currentValue = getStreamingValue(streamer.option);
+                return (
+                  <div key={i} className="streamer-item">
+                    <div className="streamer-main">
+                      <Zap size={14} />
+                      <span className="streamer-name">{optionLabel}</span>
+                      <button
+                        className="remove-btn"
+                        onClick={() => removeStreamer(2, i)}
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                    <div className="streamer-value">{currentValue.toFixed(1)}</div>
                   </div>
-                  <div className="streamer-value">{streamingValue.toFixed(1)}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
-          {(side2.players.length > 0 || side2.streamerCount > 0) && (
+          {(side2Players.length > 0 || side2Streamers.length > 0) && (
             <div className="side-total">
               <div className="total-row">
-                <span>Players ({side2.players.length})</span>
+                <span>Players ({side2Players.length})</span>
                 <span className="total-value">{totals2.lockin.toFixed(1)}</span>
               </div>
-              {side2.streamerCount > 0 && (
+              {side2Streamers.length > 0 && (
                 <div className="total-row">
-                  <span>Streamers ({side2.streamerCount})</span>
+                  <span>Streamers ({side2Streamers.length})</span>
                   <span className="total-value">{totals2.streamerLockin.toFixed(1)}</span>
                 </div>
               )}
@@ -769,13 +721,11 @@ export default function TradeMachine({ players, teams }: Props) {
                   <Info size={12} />
                   Based on {periodConfig.label.toLowerCase()} data
                 </span>
-                {includeStreaming && analysis.rosterSpotDiff !== 0 && (
-                  <span className={`meta-item ${analysis.rosterSpotDiff > 0 ? 'streaming' : 'cost'}`}>
+                {analysis.rosterSpotDiff > 0 && (
+                  <span className="meta-item streaming">
                     <Zap size={12} />
-                    {analysis.rosterSpotDiff > 0
-                      ? `Side A gains ${analysis.rosterSpotDiff} roster spot(s) (+${analysis.rosterSpotAdjustment.toFixed(1)})`
-                      : `Side A loses ${Math.abs(analysis.rosterSpotDiff)} roster spot(s) (${analysis.rosterSpotAdjustment.toFixed(1)})`
-                    }
+                    {`${analysis.rosterSpotDiff} open roster spot(s)`}
+                    {analysis.streamersAdded === 0 && ' - add streamers to Receives to value them'}
                   </span>
                 )}
               </div>
@@ -792,9 +742,7 @@ export default function TradeMachine({ players, teams }: Props) {
                   <div className="summary-label">Side A Gives</div>
                   <div className="summary-value">{analysis.totalGiven.toFixed(1)}</div>
                   <div className="summary-breakdown">
-                    {side1.players.length} player(s): {totals1.lockin.toFixed(1)}
-                    {side1.streamerCount > 0 && <span> + {side1.streamerCount} streamer(s): {totals1.streamerLockin.toFixed(1)}</span>}
-                    {analysis.rosterSpotDiff < 0 && <span className="cost"> + roster cost: {Math.abs(analysis.rosterSpotAdjustment).toFixed(1)}</span>}
+                    {side1Players.length} player(s): {totals1.lockin.toFixed(1)}
                   </div>
                 </div>
                 <div className="summary-arrow">
@@ -804,9 +752,8 @@ export default function TradeMachine({ players, teams }: Props) {
                   <div className="summary-label">Side A Receives</div>
                   <div className="summary-value">{analysis.totalReceived.toFixed(1)}</div>
                   <div className="summary-breakdown">
-                    {side2.players.length} player(s): {totals2.lockin.toFixed(1)}
-                    {side2.streamerCount > 0 && <span> + {side2.streamerCount} streamer(s): {totals2.streamerLockin.toFixed(1)}</span>}
-                    {analysis.rosterSpotDiff > 0 && <span className="bonus"> + roster gain: {analysis.rosterSpotAdjustment.toFixed(1)}</span>}
+                    {side2Players.length} player(s): {totals2.lockin.toFixed(1)}
+                    {side2Streamers.length > 0 && <span> + {side2Streamers.length} streamer(s): {totals2.streamerLockin.toFixed(1)}</span>}
                   </div>
                 </div>
               </div>
@@ -819,7 +766,7 @@ export default function TradeMachine({ players, teams }: Props) {
             <div className="comparison-card">
               <h4>Player Comparison</h4>
               <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={getPlayerComparisonData()} layout="vertical">
+                <BarChart data={playerComparisonData} layout="vertical">
                   <XAxis type="number" stroke="var(--text-muted)" fontSize={10} tickLine={false} />
                   <YAxis
                     type="category"
@@ -843,7 +790,7 @@ export default function TradeMachine({ players, teams }: Props) {
                     ]}
                   />
                   <Bar dataKey="lockin" name="Lock-In" radius={[0, 4, 4, 0]}>
-                    {getPlayerComparisonData().map((entry, index) => (
+                    {playerComparisonData.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={entry.side === 'A' ? '#ef4444' : '#10b981'}
@@ -858,7 +805,7 @@ export default function TradeMachine({ players, teams }: Props) {
             <div className="comparison-card full-width">
               <h4>Weekly Performance Comparison</h4>
               <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={getWeeklyComparison()}>
+                <LineChart data={weeklyComparisonData}>
                   <XAxis dataKey="week" stroke="var(--text-muted)" fontSize={10} tickLine={false} />
                   <YAxis stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
                   <Tooltip

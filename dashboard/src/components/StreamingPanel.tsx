@@ -32,6 +32,17 @@ import {
 } from 'recharts';
 import type { PlayerAnalytics, TeamAnalytics, Roster } from '../types';
 import type { SleeperPlayer, NBASchedule } from '../lib/dataLoader';
+import {
+  calcPlayerPeriodStats,
+  calcPlayerTrends,
+  filterByInjuryStatus,
+  isPlayerOut,
+  isPlayerIR,
+  getRemainingGames,
+  TIME_PERIODS,
+  CHART_COLORS,
+  type TimePeriod,
+} from '../lib/analytics';
 import './StreamingPanel.css';
 
 interface Props {
@@ -43,137 +54,13 @@ interface Props {
   nbaSchedule: NBASchedule | null;
 }
 
-type SortKey = 'expectedLockin' | 'avgFpts' | 'lockinCeiling' | 'lockinFloor' | 'avgMinutes' | 'totalGames' | 'lockinTrendPct';
+type SortKey = 'expectedLockin' | 'avgFpts' | 'lockinCeiling' | 'lockinFloor' | 'avgMinutes' | 'totalGames' | 'lockinTrendPct' | 'l2w' | 'l4w' | 'pct40plus' | 'pct45plus' | 'reliability' | 'delta2v4' | 'delta4v8' | 'gamesLeft';
 type SortDir = 'asc' | 'desc';
-type TimePeriod = 'all' | 'L3W' | 'L4W' | 'L6W' | 'L8W';
 type ViewMode = 'freeAgents' | 'all' | 'dropCandidates';
 
-const TIME_PERIODS: { value: TimePeriod; label: string; weeks: number }[] = [
-  { value: 'all', label: 'Season', weeks: 99 },
-  { value: 'L3W', label: '3W', weeks: 3 },
-  { value: 'L4W', label: '4W', weeks: 4 },
-  { value: 'L6W', label: '6W', weeks: 6 },
-  { value: 'L8W', label: '8W', weeks: 8 },
-];
-
-const CHART_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
-
-// Injury statuses that mean player is not available
-const INJURED_OUT_STATUSES = ['OUT', 'IR', 'Injured Reserve', 'OFS'];
-
-function calcPlayerStats(player: PlayerAnalytics, maxWeeks: number) {
-  const currentWeek = Math.max(...player.weeklyStats.map(w => w.week));
-  const minWeek = maxWeeks === 99 ? 1 : currentWeek - maxWeeks + 1;
-  const filteredWeeks = player.weeklyStats.filter(w => w.week >= minWeek);
-
-  if (filteredWeeks.length === 0) {
-    return {
-      expectedLockin: 0,
-      medianLockin: 0,
-      avgFpts: 0,
-      ceiling: 0,
-      floor: 0,
-      avgMinutes: 0,
-      pct40plus: 0,
-      pct45plus: 0,
-      pctBust: 0,
-      reliability: 0,
-    };
-  }
-
-  const maxFptsList = filteredWeeks.map(w => w.maxFpts);
-  const avgFptsList = filteredWeeks.map(w => w.avgFpts);
-  const minutesList = filteredWeeks.map(w => w.avgMinutes);
-  const totalWeeks = maxFptsList.length;
-
-  const avg = maxFptsList.reduce((a, b) => a + b, 0) / totalWeeks;
-  const ceiling = Math.max(...maxFptsList);
-  const floor = Math.min(...maxFptsList);
-
-  // Median lock-in
-  const sortedMaxes = [...maxFptsList].sort((a, b) => a - b);
-  const mid = Math.floor(sortedMaxes.length / 2);
-  const medianLockin = sortedMaxes.length % 2 !== 0
-    ? sortedMaxes[mid]
-    : (sortedMaxes[mid - 1] + sortedMaxes[mid]) / 2;
-
-  // Reliability metrics
-  const weeks40plus = maxFptsList.filter(v => v >= 40).length;
-  const weeks45plus = maxFptsList.filter(v => v >= 45).length;
-  const weeksBust = maxFptsList.filter(v => v < 35).length;
-
-  const pct40plus = (weeks40plus / totalWeeks) * 100;
-  const pct45plus = (weeks45plus / totalWeeks) * 100;
-  const pctBust = (weeksBust / totalWeeks) * 100;
-
-  // Composite Reliability Score
-  const reliability = (pct40plus * 0.5) + (pct45plus * 0.3) + ((100 - pctBust) * 0.2);
-
-  return {
-    expectedLockin: avg,
-    medianLockin,
-    avgFpts: avgFptsList.reduce((a, b) => a + b, 0) / avgFptsList.length,
-    ceiling,
-    floor,
-    avgMinutes: minutesList.reduce((a, b) => a + b, 0) / minutesList.length,
-    pct40plus,
-    pct45plus,
-    pctBust,
-    reliability: Math.max(0, Math.min(100, reliability)),
-  };
-}
-
-// Calculate Lock-In for specific week range
-function calcLockinForWeeks(player: PlayerAnalytics, startWeeksAgo: number, endWeeksAgo: number = 0) {
-  const currentWeek = Math.max(...player.weeklyStats.map(w => w.week));
-  const startWeek = currentWeek - startWeeksAgo + 1;
-  const endWeek = currentWeek - endWeeksAgo;
-
-  const filteredWeeks = player.weeklyStats.filter(w => w.week >= startWeek && w.week <= endWeek);
-  if (filteredWeeks.length === 0) return null;
-
-  const maxes = filteredWeeks.map(w => w.maxFpts);
-  return maxes.reduce((a, b) => a + b, 0) / maxes.length;
-}
-
-// Calculate all trend comparisons for a player
-function calcTrends(player: PlayerAnalytics) {
-  const l2w = calcLockinForWeeks(player, 2, 0);  // Last 2 weeks
-  const l4w = calcLockinForWeeks(player, 4, 0);  // Last 4 weeks
-  const l6w = calcLockinForWeeks(player, 6, 0);  // Last 6 weeks
-  const l8w = calcLockinForWeeks(player, 8, 0);  // Last 8 weeks
-  const prev2w = calcLockinForWeeks(player, 4, 2);  // Weeks 3-4 ago
-  const prev4w = calcLockinForWeeks(player, 8, 4);  // Weeks 5-8 ago
-
-  // Δ2v4: Recent 2 weeks vs prior 2 weeks (short-term momentum)
-  const delta2v4 = (l2w !== null && prev2w !== null && prev2w > 0)
-    ? ((l2w - prev2w) / prev2w) * 100
-    : null;
-
-  // Δ4v8: Recent 4 weeks vs prior 4 weeks (medium-term trend)
-  const delta4v8 = (l4w !== null && prev4w !== null && prev4w > 0)
-    ? ((l4w - prev4w) / prev4w) * 100
-    : null;
-
-  return {
-    l2w,
-    l4w,
-    l6w,
-    l8w,
-    delta2v4,  // Short-term momentum: positive = hot, negative = cold
-    delta4v8,  // Medium-term trend: positive = improving, negative = declining
-  };
-}
-
-// Get remaining games for a team this week
-function getRemainingGames(team: string, schedule: NBASchedule | null): { count: number; games: Array<{ opponent: string; home: boolean; date: string }> } {
-  if (!schedule) return { count: 0, games: [] };
-  const remaining = schedule.remainingThisWeek[team] || [];
-  return {
-    count: remaining.length,
-    games: remaining.map(g => ({ opponent: g.opponent, home: g.home, date: g.date })),
-  };
-}
+// Use shared calculation utilities from analytics.ts
+const calcPlayerStats = calcPlayerPeriodStats;
+const calcTrends = calcPlayerTrends;
 
 export default function StreamingPanel({ players, rosters, onPlayerSelect, nbaSchedule }: Props) {
   const [search, setSearch] = useState('');
@@ -184,7 +71,9 @@ export default function StreamingPanel({ players, rosters, onPlayerSelect, nbaSc
   const [showComparison, setShowComparison] = useState(false);
   const [comparisonPeriod, setComparisonPeriod] = useState<TimePeriod>('L4W');
   const [viewMode, setViewMode] = useState<ViewMode>('freeAgents');
-  const [hideInjured, setHideInjured] = useState(true);
+  // Two separate injury toggles: OUT (short-term) vs IR (long-term/season)
+  const [hideOut, setHideOut] = useState(true);
+  const [hideIR, setHideIR] = useState(true);
 
   const periodConfig = TIME_PERIODS.find(p => p.value === comparisonPeriod)!;
 
@@ -215,14 +104,17 @@ export default function StreamingPanel({ players, rosters, onPlayerSelect, nbaSc
     return { freeAgentPlayers: freeAgents, rosteredPlayers: rostered };
   }, [players, rosteredPlayerIds]);
 
-  // Filter out injured players from free agents
+  // Filter out injured players from free agents using shared utility
   const healthyFreeAgents = useMemo(() => {
-    if (!hideInjured) return freeAgentPlayers;
-    return freeAgentPlayers.filter(p => {
-      const status = p.injury_status?.toUpperCase();
-      return !status || !INJURED_OUT_STATUSES.some(s => status.includes(s));
-    });
-  }, [freeAgentPlayers, hideInjured]);
+    return filterByInjuryStatus(freeAgentPlayers, hideOut, hideIR);
+  }, [freeAgentPlayers, hideOut, hideIR]);
+
+  // Count injured players for display
+  const injuredCounts = useMemo(() => {
+    const outCount = freeAgentPlayers.filter(p => isPlayerOut(p)).length;
+    const irCount = freeAgentPlayers.filter(p => isPlayerIR(p)).length;
+    return { out: outCount, ir: irCount };
+  }, [freeAgentPlayers]);
 
   // Calculate streaming line (bottom 25% of rostered players)
   const streamingLine = useMemo(() => {
@@ -283,13 +175,33 @@ export default function StreamingPanel({ players, rosters, onPlayerSelect, nbaSc
 
     // Sort
     result = [...result].sort((a, b) => {
-      const aVal = a[sortKey] as number;
-      const bVal = b[sortKey] as number;
+      let aVal: number;
+      let bVal: number;
+
+      // Handle computed sort keys
+      if (sortKey === 'l2w' || sortKey === 'l4w' || sortKey === 'delta2v4' || sortKey === 'delta4v8') {
+        const aTrends = calcTrends(a);
+        const bTrends = calcTrends(b);
+        aVal = aTrends[sortKey] ?? -Infinity;
+        bVal = bTrends[sortKey] ?? -Infinity;
+      } else if (sortKey === 'pct40plus' || sortKey === 'pct45plus' || sortKey === 'reliability') {
+        const aStats = calcPlayerStats(a, 99);
+        const bStats = calcPlayerStats(b, 99);
+        aVal = aStats[sortKey];
+        bVal = bStats[sortKey];
+      } else if (sortKey === 'gamesLeft') {
+        aVal = getRemainingGames(a.nba_team, nbaSchedule, a).count;
+        bVal = getRemainingGames(b.nba_team, nbaSchedule, b).count;
+      } else {
+        aVal = a[sortKey] as number;
+        bVal = b[sortKey] as number;
+      }
+
       return sortDir === 'desc' ? bVal - aVal : aVal - bVal;
     });
 
     return result;
-  }, [basePlayers, search, positionFilter, sortKey, sortDir]);
+  }, [basePlayers, search, positionFilter, sortKey, sortDir, nbaSchedule]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -481,21 +393,31 @@ export default function StreamingPanel({ players, rosters, onPlayerSelect, nbaSc
           </div>
         </div>
         {viewMode === 'freeAgents' && (
-          <label className="hide-injured-toggle">
-            <input
-              type="checkbox"
-              checked={hideInjured}
-              onChange={e => setHideInjured(e.target.checked)}
-            />
-            <span>Hide injured (OUT/IR)</span>
-          </label>
+          <div className="injury-toggles">
+            <label className="hide-injured-toggle">
+              <input
+                type="checkbox"
+                checked={hideOut}
+                onChange={e => setHideOut(e.target.checked)}
+              />
+              <span>Hide OUT ({injuredCounts.out})</span>
+            </label>
+            <label className="hide-injured-toggle">
+              <input
+                type="checkbox"
+                checked={hideIR}
+                onChange={e => setHideIR(e.target.checked)}
+              />
+              <span>Hide IR ({injuredCounts.ir})</span>
+            </label>
+          </div>
         )}
       </div>
 
       {/* Results count */}
       <div className="results-count">
         Showing {filteredPlayers.length} {viewMode === 'freeAgents' ? 'free agents' : viewMode === 'dropCandidates' ? 'drop candidates' : 'players'}
-        {hideInjured && viewMode === 'freeAgents' && freeAgentPlayers.length !== healthyFreeAgents.length && (
+        {(hideOut || hideIR) && viewMode === 'freeAgents' && freeAgentPlayers.length !== healthyFreeAgents.length && (
           <span className="injured-hidden"> ({freeAgentPlayers.length - healthyFreeAgents.length} injured hidden)</span>
         )}
         <span className="select-hint"> • Click checkbox to select for comparison</span>
@@ -678,26 +600,42 @@ export default function StreamingPanel({ players, rosters, onPlayerSelect, nbaSc
                 <th>Player</th>
                 <th>Team</th>
                 <th>Pos</th>
-                <th title="Games remaining this week" className="games-left-header">Left</th>
+                <th title="Games remaining this week" className="sortable games-left-header" onClick={() => handleSort('gamesLeft')}>
+                  Left <SortIcon column="gamesLeft" />
+                </th>
                 <th className="sortable" onClick={() => handleSort('totalGames')}>
                   GP <SortIcon column="totalGames" />
                 </th>
                 <th className="sortable" onClick={() => handleSort('expectedLockin')}>
                   Season <SortIcon column="expectedLockin" />
                 </th>
-                <th>L2W</th>
-                <th>L4W</th>
+                <th className="sortable" onClick={() => handleSort('l2w')}>
+                  L2W <SortIcon column="l2w" />
+                </th>
+                <th className="sortable" onClick={() => handleSort('l4w')}>
+                  L4W <SortIcon column="l4w" />
+                </th>
                 <th className="sortable" onClick={() => handleSort('lockinCeiling')}>
                   Ceil <SortIcon column="lockinCeiling" />
                 </th>
                 <th className="sortable" onClick={() => handleSort('lockinFloor')}>
                   Floor <SortIcon column="lockinFloor" />
                 </th>
-                <th title="% weeks with 40+ game">40+%</th>
-                <th title="% weeks with 45+ game">45+%</th>
-                <th title="Reliability score">Rel</th>
-                <th title="Short-term momentum">Δ2v4</th>
-                <th title="Medium-term trend">Δ4v8</th>
+                <th title="% weeks with 40+ game" className="sortable" onClick={() => handleSort('pct40plus')}>
+                  40+% <SortIcon column="pct40plus" />
+                </th>
+                <th title="% weeks with 45+ game" className="sortable" onClick={() => handleSort('pct45plus')}>
+                  45+% <SortIcon column="pct45plus" />
+                </th>
+                <th title="Reliability score" className="sortable" onClick={() => handleSort('reliability')}>
+                  Rel <SortIcon column="reliability" />
+                </th>
+                <th title="Short-term momentum" className="sortable" onClick={() => handleSort('delta2v4')}>
+                  Δ2v4 <SortIcon column="delta2v4" />
+                </th>
+                <th title="Medium-term trend" className="sortable" onClick={() => handleSort('delta4v8')}>
+                  Δ4v8 <SortIcon column="delta4v8" />
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -707,7 +645,7 @@ export default function StreamingPanel({ players, rosters, onPlayerSelect, nbaSc
                 const isFreeAgent = !rosteredPlayerIds.has(player.sleeper_id);
                 const isBelowLine = player.expectedLockin < streamingLine;
                 const trends = calcTrends(player);
-                const remainingGames = getRemainingGames(player.nba_team, nbaSchedule);
+                const remainingGames = getRemainingGames(player.nba_team, nbaSchedule, player);
                 const stats = calcPlayerStats(player, 99);
 
                 const formatTrend = (val: number | null) => {

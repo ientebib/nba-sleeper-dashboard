@@ -117,3 +117,51 @@ export async function loadNBASchedule(): Promise<NBASchedule | null> {
     return null;
   }
 }
+
+// Sleeper matchups types
+export interface SleeperMatchupTeam {
+  roster_id: number;
+  starters: string[];
+  points: number;
+}
+
+// Week -> matchup_id -> [team1, team2]
+export type SleeperMatchups = Record<string, Record<string, SleeperMatchupTeam[]>>;
+
+export async function loadSleeperMatchups(): Promise<SleeperMatchups | null> {
+  try {
+    const response = await fetch('/matchups.json');
+    if (!response.ok) return null;
+    return response.json();
+  } catch {
+    return null;
+  }
+}
+
+// Helper to find opponent for a given roster_id and week
+export function findOpponentForWeek(
+  matchups: SleeperMatchups | null,
+  myRosterId: number,
+  week: number
+): { opponentRosterId: number; myStarters: string[]; opponentStarters: string[] } | null {
+  if (!matchups) return null;
+
+  const weekData = matchups[String(week)];
+  if (!weekData) return null;
+
+  for (const matchupTeams of Object.values(weekData)) {
+    const myTeam = matchupTeams.find(t => t.roster_id === myRosterId);
+    if (myTeam) {
+      const opponent = matchupTeams.find(t => t.roster_id !== myRosterId);
+      if (opponent) {
+        return {
+          opponentRosterId: opponent.roster_id,
+          myStarters: myTeam.starters.filter(id => id !== '0'),
+          opponentStarters: opponent.starters.filter(id => id !== '0'),
+        };
+      }
+    }
+  }
+
+  return null;
+}

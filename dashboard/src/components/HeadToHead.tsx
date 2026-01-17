@@ -25,6 +25,7 @@ import {
   PolarRadiusAxis,
 } from 'recharts';
 import type { PlayerAnalytics, TeamAnalytics } from '../types';
+import { calcPlayerPeriodStats } from '../lib/analytics';
 import './HeadToHead.css';
 
 interface Props {
@@ -48,30 +49,21 @@ const TEAM_COLORS = {
   team2: '#f59e0b',
 };
 
+// Use shared calculation utility from analytics.ts
+// Wrapper to add consistency calculation (specific to HeadToHead)
 function calcPlayerStats(player: PlayerAnalytics, maxWeeks: number) {
-  const currentWeek = Math.max(...player.weeklyStats.map(w => w.week));
-  const minWeek = maxWeeks === 99 ? 1 : currentWeek - maxWeeks + 1;
-  const filteredWeeks = player.weeklyStats.filter(w => w.week >= minWeek);
+  const stats = calcPlayerPeriodStats(player, maxWeeks);
 
-  if (filteredWeeks.length === 0) {
-    return { expectedLockin: 0, avgFpts: 0, ceiling: 0, floor: 0, avgMinutes: 0, consistency: 0 };
-  }
-
-  const maxFptsList = filteredWeeks.map(w => w.maxFpts);
-  const avgFptsList = filteredWeeks.map(w => w.avgFpts);
-  const minutesList = filteredWeeks.map(w => w.avgMinutes);
-
-  const avg = maxFptsList.reduce((a, b) => a + b, 0) / maxFptsList.length;
-  const variance = maxFptsList.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / maxFptsList.length;
-  const stdDev = Math.sqrt(variance);
-  const consistency = avg > 0 ? 100 - (stdDev / avg * 100) : 0;
+  // Calculate consistency from reliability score (already computed)
+  // Convert reliability (0-100) to consistency format expected by HeadToHead
+  const consistency = stats.reliability;
 
   return {
-    expectedLockin: avg,
-    avgFpts: avgFptsList.reduce((a, b) => a + b, 0) / avgFptsList.length,
-    ceiling: Math.max(...maxFptsList),
-    floor: Math.min(...maxFptsList),
-    avgMinutes: minutesList.reduce((a, b) => a + b, 0) / minutesList.length,
+    expectedLockin: stats.expectedLockin,
+    avgFpts: stats.avgFpts,
+    ceiling: stats.ceiling,
+    floor: stats.floor,
+    avgMinutes: stats.avgMinutes,
     consistency: Math.max(0, Math.min(100, consistency)),
   };
 }

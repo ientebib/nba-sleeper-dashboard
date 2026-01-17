@@ -10,6 +10,8 @@ import {
   Activity,
   Calendar,
   ChevronDown,
+  ChevronUp,
+  ArrowUpDown,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -23,6 +25,7 @@ import {
   Cell,
 } from 'recharts';
 import type { TeamAnalytics, PlayerAnalytics } from '../types';
+import { calcPlayerPeriodStats } from '../lib/analytics';
 import './TeamDetail.css';
 
 interface Props {
@@ -33,6 +36,8 @@ interface Props {
 }
 
 type TimePeriod = 'all' | 'L3W' | 'L4W' | 'L5W' | 'L6W' | 'L8W' | 'custom';
+type SortKey = 'lockin' | 'avg' | 'ceiling' | 'floor' | 'minutes' | 'minTrend' | 'lockinTrend';
+type SortDir = 'asc' | 'desc';
 
 const TIME_PERIODS: { value: TimePeriod; label: string; weeks: number }[] = [
   { value: 'all', label: 'Season', weeks: 99 },
@@ -43,7 +48,10 @@ const TIME_PERIODS: { value: TimePeriod; label: string; weeks: number }[] = [
   { value: 'L8W', label: '8W', weeks: 8 },
 ];
 
+// Use shared calculation utility from analytics.ts
+// Wrapper to add minutes trend calculation (specific to TeamDetail)
 function calcPlayerStats(player: PlayerAnalytics, maxWeeks: number, customRange?: { start: number; end: number }) {
+  // Handle custom range by filtering weeks manually, then use shared calculation
   const currentWeek = Math.max(...player.weeklyStats.map(w => w.week));
 
   let filteredWeeks;
@@ -55,14 +63,13 @@ function calcPlayerStats(player: PlayerAnalytics, maxWeeks: number, customRange?
   }
 
   if (filteredWeeks.length === 0) {
-    return { expectedLockin: 0, avgFpts: 0, ceiling: 0, floor: 0, avgMinutes: 0, games: 0, weeksPlayed: 0 };
+    return { expectedLockin: 0, avgFpts: 0, ceiling: 0, floor: 0, avgMinutes: 0, games: 0, weeksPlayed: 0, minutesTrendPct: 0 };
   }
 
-  const maxFptsList = filteredWeeks.map(w => w.maxFpts);
-  const avgFptsList = filteredWeeks.map(w => w.avgFpts);
-  const minutesList = filteredWeeks.map(w => w.avgMinutes);
+  // Use shared calculation for core stats
+  const stats = calcPlayerPeriodStats(player, maxWeeks);
 
-  // Calculate minutes trend (compare recent vs earlier in period)
+  // Calculate minutes trend (compare recent vs earlier in period) - specific to TeamDetail
   const midPoint = Math.floor(filteredWeeks.length / 2);
   const earlyMinutes = filteredWeeks.slice(0, midPoint).map(w => w.avgMinutes);
   const recentMinutes = filteredWeeks.slice(midPoint).map(w => w.avgMinutes);
@@ -71,13 +78,13 @@ function calcPlayerStats(player: PlayerAnalytics, maxWeeks: number, customRange?
   const minutesTrendPct = earlyAvg > 0 ? ((recentAvg - earlyAvg) / earlyAvg) * 100 : 0;
 
   return {
-    expectedLockin: maxFptsList.reduce((a, b) => a + b, 0) / maxFptsList.length,
-    avgFpts: avgFptsList.reduce((a, b) => a + b, 0) / avgFptsList.length,
-    ceiling: Math.max(...maxFptsList),
-    floor: Math.min(...maxFptsList),
-    avgMinutes: minutesList.reduce((a, b) => a + b, 0) / minutesList.length,
-    games: filteredWeeks.reduce((sum, w) => sum + w.games, 0),
-    weeksPlayed: filteredWeeks.length,
+    expectedLockin: stats.expectedLockin,
+    avgFpts: stats.avgFpts,
+    ceiling: stats.ceiling,
+    floor: stats.floor,
+    avgMinutes: stats.avgMinutes,
+    games: stats.games,
+    weeksPlayed: stats.weeks,
     minutesTrendPct,
   };
 }
@@ -86,19 +93,83 @@ export default function TeamDetail({ team, onBack, onPlayerSelect }: Props) {
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('all');
   const [customRange, setCustomRange] = useState({ start: 1, end: 13 });
   const [showCustom, setShowCustom] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>('lockin');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
 
   const periodConfig = TIME_PERIODS.find(p => p.value === timePeriod) || TIME_PERIODS[0];
   const maxWeek = Math.max(...team.players.flatMap(p => p.weeklyStats.map(w => w.week)));
 
   // Get team players with period stats
   const teamPlayers = useMemo(() => {
-    return team.players
-      .map(p => ({
-        ...p,
-        periodStats: calcPlayerStats(p, periodConfig.weeks, timePeriod === 'custom' ? customRange : undefined),
-      }))
-      .sort((a, b) => b.periodStats.expectedLockin - a.periodStats.expectedLockin);
-  }, [team.players, timePeriod, customRange, periodConfig.weeks]);
+    const playersWithStats = team.players.map(p => ({
+      ...p,
+      periodStats: calcPlayerStats(p, periodConfig.weeks, timePeriod === 'custom' ? customRange : undefined),
+    }));
+
+    // Sort based on selected column
+    return playersWithStats.sort((a, b) => {
+      let aVal: number, bVal: number;
+      switch (sortKey) {
+        case 'lockin':
+          aVal = a.periodStats.expectedLockin;
+          bVal = b.periodStats.expectedLockin;
+          break;
+        case 'avg':
+          aVal = a.periodStats.avgFpts;
+          bVal = b.periodStats.avgFpts;
+          break;
+        case 'ceiling':
+          aVal = a.periodStats.ceiling;
+          bVal = b.periodStats.ceiling;
+          break;
+        case 'floor':
+          aVal = a.periodStats.floor;
+          bVal = b.periodStats.floor;
+          break;
+        case 'minutes':
+          aVal = a.periodStats.avgMinutes;
+          bVal = b.periodStats.avgMinutes;
+          break;
+        case 'minTrend':
+          aVal = a.periodStats.minutesTrendPct || 0;
+          bVal = b.periodStats.minutesTrendPct || 0;
+          break;
+        case 'lockinTrend':
+          aVal = a.lockinTrendPct;
+          bVal = b.lockinTrendPct;
+          break;
+        default:
+          aVal = a.periodStats.expectedLockin;
+          bVal = b.periodStats.expectedLockin;
+      }
+      return sortDir === 'desc' ? bVal - aVal : aVal - bVal;
+    });
+  }, [team.players, timePeriod, customRange, periodConfig.weeks, sortKey, sortDir]);
+
+  // Handle sort click
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(sortDir === 'desc' ? 'asc' : 'desc');
+    } else {
+      setSortKey(key);
+      setSortDir('desc');
+    }
+  };
+
+  // Sort header component
+  const SortHeader = ({ label, sortKeyName }: { label: string; sortKeyName: SortKey }) => {
+    const isActive = sortKey === sortKeyName;
+    return (
+      <span className={`sortable ${isActive ? 'active' : ''}`} onClick={() => handleSort(sortKeyName)}>
+        {label}
+        {isActive ? (
+          sortDir === 'desc' ? <ChevronDown size={12} /> : <ChevronUp size={12} />
+        ) : (
+          <ArrowUpDown size={10} />
+        )}
+      </span>
+    );
+  };
 
   // Top 10 starters and bench
   const starters = teamPlayers.slice(0, 10);
@@ -377,13 +448,13 @@ export default function TeamDetail({ team, onBack, onPlayerSelect }: Props) {
         <div className="roster-table">
           <div className="roster-header">
             <span>Player</span>
-            <span>Lock-In</span>
-            <span>Avg</span>
-            <span>Ceiling</span>
-            <span>Floor</span>
-            <span>Min</span>
-            <span>Min Trend</span>
-            <span>Lock-In Trend</span>
+            <SortHeader label="Lock-In" sortKeyName="lockin" />
+            <SortHeader label="Avg" sortKeyName="avg" />
+            <SortHeader label="Ceiling" sortKeyName="ceiling" />
+            <SortHeader label="Floor" sortKeyName="floor" />
+            <SortHeader label="Min" sortKeyName="minutes" />
+            <SortHeader label="Min Trend" sortKeyName="minTrend" />
+            <SortHeader label="Lock-In Trend" sortKeyName="lockinTrend" />
           </div>
           {starters.map((player, idx) => (
             <div
@@ -431,13 +502,13 @@ export default function TeamDetail({ team, onBack, onPlayerSelect }: Props) {
           <div className="roster-table">
             <div className="roster-header">
               <span>Player</span>
-              <span>Lock-In</span>
-              <span>Avg</span>
-              <span>Ceiling</span>
-              <span>Floor</span>
-              <span>Min</span>
-              <span>Min Trend</span>
-              <span>Lock-In Trend</span>
+              <SortHeader label="Lock-In" sortKeyName="lockin" />
+              <SortHeader label="Avg" sortKeyName="avg" />
+              <SortHeader label="Ceiling" sortKeyName="ceiling" />
+              <SortHeader label="Floor" sortKeyName="floor" />
+              <SortHeader label="Min" sortKeyName="minutes" />
+              <SortHeader label="Min Trend" sortKeyName="minTrend" />
+              <SortHeader label="Lock-In Trend" sortKeyName="lockinTrend" />
             </div>
             {bench.map((player, idx) => (
               <div

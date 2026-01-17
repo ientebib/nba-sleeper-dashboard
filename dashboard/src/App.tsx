@@ -7,13 +7,14 @@ import {
   ArrowLeftRight,
   Zap,
   Swords,
+  Target,
   Loader2,
   Trophy,
   Sun,
   Moon,
   RefreshCw,
 } from 'lucide-react';
-import { loadGames, loadRosters, loadAllPlayers, loadNBASchedule, type SleeperPlayer, type NBASchedule } from './lib/dataLoader';
+import { loadGames, loadRosters, loadAllPlayers, loadNBASchedule, loadSleeperMatchups, type SleeperPlayer, type NBASchedule, type SleeperMatchups } from './lib/dataLoader';
 import { computePlayerAnalytics, computeTeamAnalytics } from './lib/analytics';
 import type { Game, PlayerAnalytics, TeamAnalytics, ViewType, Roster } from './types';
 import Dashboard from './components/Dashboard';
@@ -22,6 +23,7 @@ import TeamsView from './components/TeamsView';
 import TradeMachine from './components/TradeMachine';
 import StreamingPanel from './components/StreamingPanel';
 import HeadToHead from './components/HeadToHead';
+import Matchups from './components/Matchups';
 import PlayerDetail from './components/PlayerDetail';
 import TeamDetail from './components/TeamDetail';
 import './App.css';
@@ -33,6 +35,7 @@ function App() {
   const [teams, setTeams] = useState<TeamAnalytics[]>([]);
   const [allNbaPlayers, setAllNbaPlayers] = useState<Record<string, SleeperPlayer>>({});
   const [nbaSchedule, setNbaSchedule] = useState<NBASchedule | null>(null);
+  const [sleeperMatchups, setSleeperMatchups] = useState<SleeperMatchups | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<ViewType>('dashboard');
@@ -104,16 +107,18 @@ function App() {
   useEffect(() => {
     async function init() {
       try {
-        const [gamesData, rostersData, allPlayersData, scheduleData] = await Promise.all([
+        const [gamesData, rostersData, allPlayersData, scheduleData, matchupsData] = await Promise.all([
           loadGames(),
           loadRosters(),
           loadAllPlayers(),
           loadNBASchedule(),
+          loadSleeperMatchups(),
         ]);
         setGames(gamesData);
         setRosters(rostersData);
         setAllNbaPlayers(allPlayersData);
         setNbaSchedule(scheduleData);
+        setSleeperMatchups(matchupsData);
 
         const playerAnalytics = computePlayerAnalytics(gamesData, rostersData, allPlayersData);
         const teamAnalytics = computeTeamAnalytics(playerAnalytics, rostersData);
@@ -151,6 +156,8 @@ function App() {
       setView('h2h');
     } else if (previousView === 'trade') {
       setView('trade');
+    } else if (previousView === 'matchups') {
+      setView('matchups');
     } else {
       setView('players');
     }
@@ -297,6 +304,13 @@ function App() {
           <Swords size={18} />
           <span>H2H</span>
         </button>
+        <button
+          className={`nav-btn ${view === 'matchups' ? 'active' : ''}`}
+          onClick={() => setView('matchups')}
+        >
+          <Target size={18} />
+          <span>Matchups</span>
+        </button>
       </nav>
 
       {/* Main Content */}
@@ -355,6 +369,7 @@ function App() {
                     : previousView === 'streaming' ? 'Back to Streaming'
                     : previousView === 'h2h' ? 'Back to H2H'
                     : previousView === 'trade' ? 'Back to Trade'
+                    : previousView === 'matchups' ? 'Back to Matchups'
                     : 'Back to Players'
                 }
               />
@@ -434,6 +449,24 @@ function App() {
               <HeadToHead
                 teams={teams}
                 players={players}
+                onPlayerSelect={handlePlayerSelect}
+              />
+            </motion.div>
+          )}
+          {view === 'matchups' && (
+            <motion.div
+              key="matchups"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Matchups
+                teams={teams}
+                players={players}
+                rosters={rosters}
+                nbaSchedule={nbaSchedule}
+                sleeperMatchups={sleeperMatchups}
                 onPlayerSelect={handlePlayerSelect}
               />
             </motion.div>

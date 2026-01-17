@@ -192,4 +192,68 @@ export interface FilterState {
 }
 
 // App views
-export type ViewType = 'dashboard' | 'players' | 'teams' | 'trade' | 'streaming' | 'h2h' | 'player-detail' | 'team-detail';
+export type ViewType = 'dashboard' | 'players' | 'teams' | 'trade' | 'streaming' | 'h2h' | 'matchups' | 'player-detail' | 'team-detail';
+
+// ============================================
+// MATCHUPS & LOCK-IN TRACKING
+// ============================================
+
+// Lock decision for a single game
+export interface LockInDecision {
+  gameDate: string;           // ISO date (YYYY-MM-DD)
+  gameFpts: number;           // Fantasy points for the locked game
+  lockedAt: string;           // ISO timestamp when locked
+  isAutoLocked: boolean;      // True if auto-locked at week end
+}
+
+// A single game in a week (for display)
+export interface WeekGame {
+  date: string;               // ISO date
+  fpts: number;               // Fantasy points (0 if not played yet)
+  opponent: string;           // Matchup string (e.g., "@ BOS")
+  isPlayed: boolean;          // Has the game occurred?
+  isLocked: boolean;          // Is this the locked game?
+}
+
+// Player's lock-in state for a single week
+export interface PlayerWeekLockIn {
+  sleeperId: string;
+  playerName: string;
+  nbaTeam: string;
+  position: string;
+  week: number;
+  games: WeekGame[];
+  lockedGame: LockInDecision | null;
+  optimalGame: { date: string; fpts: number } | null;  // Best available (for analysis)
+  lockQuality: 'optimal' | 'good' | 'suboptimal' | 'poor' | null;
+}
+
+// Full matchup for a week (my team vs opponent)
+export interface WeekMatchup {
+  week: number;
+  seasonYear: string;           // "2025-26"
+  myTeamRosterId: number;
+  opponentRosterId: number;
+  myTeamName: string;
+  opponentTeamName: string;
+  myPlayers: PlayerWeekLockIn[];
+  opponentPlayers: PlayerWeekLockIn[];
+  myTotalLocked: number;        // Sum of locked game FPTS
+  opponentTotalLocked: number;
+  myOptimalTotal: number;       // Sum of best possible FPTS
+  opponentOptimalTotal: number;
+  result: 'win' | 'loss' | 'pending' | null;
+}
+
+// User configuration (persisted)
+export interface MatchupsConfig {
+  myTeamRosterId: number | null;
+}
+
+// Full localStorage schema for matchups
+export interface MatchupsStorage {
+  version: number;              // Schema version for migrations
+  config: MatchupsConfig;
+  history: WeekMatchup[];       // All historical matchups with lock-ins
+  lastUpdated: string;          // ISO timestamp
+}

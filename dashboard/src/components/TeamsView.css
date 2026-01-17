@@ -1,27 +1,28 @@
-/* Teams View - TE Industrial Design */
+/* Teams View - TE Brutalist Design */
 
 .teams-view {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 /* ===== COMPARISON SECTION ===== */
 .comparison-section {
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .comparison-card {
   background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
+  border: 2px solid var(--border-color);
+  box-shadow: var(--te-shadow-md);
   overflow: hidden;
 }
 
 .comparison-content {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-  padding: 12px;
+  gap: 20px;
+  padding: 16px;
 }
 
 .comparison-team {
@@ -32,36 +33,46 @@
 
 .comparison-label {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--te-font-md);
+  font-weight: 700;
   color: var(--text-primary);
-  margin-top: 8px;
+  margin-top: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 /* Weekly Chart Card */
 .weekly-chart-card {
   min-height: 380px;
   background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
+  border: 2px solid var(--border-color);
+  box-shadow: var(--te-shadow-md);
 }
 
 /* ===== TEAMS LIST ===== */
 .teams-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
 /* ===== TEAM CARD ===== */
 .team-card {
   background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
+  border: 2px solid var(--border-color);
+  box-shadow: var(--te-shadow-sm);
   overflow: hidden;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.team-card:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--te-shadow-md);
 }
 
 .team-card.selected {
-  border-color: var(--accent-primary);
-  background: rgba(59, 130, 246, 0.04);
+  border-color: var(--te-blue);
+  background: rgba(59, 130, 246, 0.06);
 }
 
 /* Team Header - Main Row */
@@ -69,8 +80,8 @@
   display: grid;
   grid-template-columns: auto 1fr auto auto auto auto;
   align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
+  gap: 16px;
+  padding: 12px 16px;
   cursor: pointer;
   transition: background 0.1s ease;
 }
@@ -88,20 +99,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   background: var(--bg-tertiary);
-  border: 1px solid var(--border-subtle);
+  border: 2px solid var(--border-color);
+  box-shadow: var(--te-shadow-sm);
   font-family: var(--font-mono);
-  font-size: 0.625rem;
+  font-size: var(--te-font-sm);
   font-weight: 700;
   color: var(--text-secondary);
 }
 
 .rank-badge.playoff {
   background: rgba(34, 197, 94, 0.15);
-  border-color: rgba(34, 197, 94, 0.3);
-  color: var(--accent-green);
+  border-color: var(--te-green);
+  color: var(--te-green);
 }
 
 /* Team Info */
@@ -111,10 +123,10 @@
 
 .team-name {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--te-font-md);
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 1px;
+  margin-bottom: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -122,26 +134,28 @@
 
 .team-owner {
   font-family: var(--font-mono);
-  font-size: 0.5625rem;
+  font-size: var(--te-font-xs);
   color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* Team Record */
 .team-record {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--te-font-md);
   font-weight: 700;
 }
 
 .team-record .wins {
-  color: var(--accent-green);
+  color: var(--te-green);
 }
 
 .team-record .losses {
-  color: var(--accent-red);
+  color: var(--te-red);
 }
 
 .team-record .sep {
@@ -153,79 +167,93 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 1px;
+  gap: 2px;
 }
 
 .lockin-value {
   font-family: var(--font-mono);
-  font-size: 0.875rem;
+  font-size: var(--te-font-lg);
   font-weight: 700;
-  color: var(--accent-primary);
+  color: var(--te-blue);
 }
 
 .lockin-label {
   font-family: var(--font-mono);
-  font-size: 0.5rem;
+  font-size: var(--te-font-xs);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 1px;
   color: var(--text-muted);
+  font-weight: 600;
 }
 
 /* Team Actions */
 .team-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .view-btn,
-.compare-btn {
-  padding: 4px 8px;
+.teams-view .compare-btn {
+  padding: 8px 14px;
   font-family: var(--font-mono);
-  font-size: 0.5rem;
-  font-weight: 600;
+  font-size: var(--te-font-xs);
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  background: transparent;
-  border: 1px solid var(--border-subtle);
+  letter-spacing: 0.5px;
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  box-shadow: var(--te-shadow-sm);
   color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.1s ease;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
 
 .view-btn:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
-  border-color: var(--text-muted);
+  border-color: var(--text-secondary);
+  transform: translate(-1px, -1px);
+  box-shadow: var(--te-shadow-md);
 }
 
-.compare-btn:hover {
+.view-btn:active,
+.teams-view .compare-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: none;
+}
+
+.teams-view .compare-btn:hover {
   background: rgba(59, 130, 246, 0.1);
-  color: var(--accent-primary);
-  border-color: var(--accent-primary);
+  color: var(--te-blue);
+  border-color: var(--te-blue);
+  transform: translate(-1px, -1px);
+  box-shadow: var(--te-shadow-md);
 }
 
-.compare-btn.active {
-  background: var(--accent-primary);
-  border-color: var(--accent-primary);
+.teams-view .compare-btn.active {
+  background: var(--te-blue);
+  border-color: var(--te-blue);
   color: white;
 }
 
-.compare-btn:disabled {
+.teams-view .compare-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: var(--te-shadow-sm);
 }
 
 /* Expand Icon */
 .team-actions svg {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   color: var(--text-muted);
 }
 
 /* ===== TEAM ROSTER (Expanded) ===== */
 .team-roster {
-  border-top: 1px solid var(--border-subtle);
+  border-top: 2px solid var(--border-color);
   background: var(--bg-secondary);
   overflow: hidden;
 }
@@ -237,22 +265,22 @@
 }
 
 .roster-table th {
-  padding: 6px 10px;
+  padding: 10px 14px;
   font-family: var(--font-mono);
-  font-size: 0.5rem;
+  font-size: var(--te-font-xs);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 1px;
   color: var(--text-muted);
-  font-weight: 600;
+  font-weight: 700;
   text-align: left;
   background: var(--bg-tertiary);
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 2px solid var(--border-color);
 }
 
 .roster-table td {
-  padding: 6px 10px;
+  padding: 10px 14px;
   font-family: var(--font-mono);
-  font-size: 0.625rem;
+  font-size: var(--te-font-sm);
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border-subtle);
 }
@@ -261,17 +289,26 @@
   border-bottom: none;
 }
 
-/* Player Cell */
-.player-cell {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.roster-table tr:hover {
+  background: var(--bg-hover);
 }
 
-.player-cell .player-name {
+/* Player Cell */
+.teams-view .player-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.teams-view .player-cell .player-name {
   font-family: var(--font-mono);
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
+}
+
+.teams-view .player-cell .player-name:hover {
+  color: var(--te-blue);
+  cursor: pointer;
 }
 
 /* ===== RESPONSIVE ===== */
@@ -282,7 +319,7 @@
 
   .team-header {
     grid-template-columns: auto 1fr auto auto;
-    gap: 8px;
+    gap: 10px;
     flex-wrap: wrap;
   }
 
@@ -302,8 +339,8 @@
   .team-actions {
     grid-column: 1 / -1;
     justify-content: flex-end;
-    margin-top: 4px;
-    padding-top: 6px;
+    margin-top: 8px;
+    padding-top: 10px;
     border-top: 1px solid var(--border-subtle);
   }
 }
@@ -311,7 +348,7 @@
 @media (max-width: 600px) {
   .team-header {
     grid-template-columns: auto 1fr;
-    gap: 6px;
+    gap: 8px;
   }
 
   .team-record,

@@ -35,6 +35,12 @@ import {
 } from 'recharts';
 import type { PlayerAnalytics } from '../types';
 import type { NBASchedule } from '../lib/dataLoader';
+import {
+  calcPlayerPeriodStats,
+  analyzeThisWeek,
+  getRecommendationDisplay,
+  type ThisWeekAnalysis,
+} from '../lib/analytics';
 import './PlayerDetail.css';
 
 interface Props {
@@ -57,78 +63,74 @@ const TIME_PERIODS: { value: TimePeriod; label: string; weeks: number }[] = [
   { value: 'L8W', label: '8W', weeks: 8 },
 ];
 
-// Calculate filtered stats for a player based on time period
+// Use shared calculation utility from analytics.ts
+// Wrapper to adapt shared function's return type to PlayerDetail's needs
 function calcFilteredStats(player: PlayerAnalytics, maxWeeks: number) {
+  const stats = calcPlayerPeriodStats(player, maxWeeks);
+
+  // Get game-level percentages (the shared function uses weekly max, we need game-level)
   const currentWeek = Math.max(...player.weeklyStats.map(w => w.week));
   const minWeek = maxWeeks === 99 ? 1 : currentWeek - maxWeeks + 1;
+  const filteredGames = player.games.filter(g => g.week >= minWeek);
 
+  // Calculate game-level metrics
+  const games50plus = filteredGames.length > 0 ? filteredGames.filter(g => g.fpts >= 50).length : 0;
+  const games60plus = filteredGames.length > 0 ? filteredGames.filter(g => g.fpts >= 60).length : 0;
+  const gamesUnder35 = filteredGames.length > 0 ? filteredGames.filter(g => g.fpts < 35).length : 0;
+
+  // Calculate median and std from avg FPTS list
   const filteredWeeks = player.weeklyStats.filter(w => w.week >= minWeek);
-
-  if (filteredWeeks.length === 0) {
-    return {
-      expectedLockin: player.expectedLockin,
-      avgFpts: player.avgFpts,
-      medianFpts: player.medianFpts,
-      stdFpts: player.stdFpts,
-      lockinCeiling: player.lockinCeiling,
-      lockinFloor: player.lockinFloor,
-      avgMinutes: player.avgMinutes,
-      totalGames: player.totalGames,
-      gamesPerWeek: player.gamesPerWeek,
-      pct50plus: player.pct50plus,
-      pct60plus: player.pct60plus,
-      pctUnder35: player.pctUnder35,
-      weeks: player.weeklyStats.length,
-    };
-  }
-
-  const maxFptsList = filteredWeeks.map(w => w.maxFpts);
   const avgFptsList = filteredWeeks.map(w => w.avgFpts);
-  const minutesList = filteredWeeks.map(w => w.avgMinutes);
-  const totalGames = filteredWeeks.reduce((sum, w) => sum + w.games, 0);
 
-  // Calculate median
   const sortedAvgs = [...avgFptsList].sort((a, b) => a - b);
   const mid = Math.floor(sortedAvgs.length / 2);
-  const median = sortedAvgs.length % 2 !== 0
-    ? sortedAvgs[mid]
-    : (sortedAvgs[mid - 1] + sortedAvgs[mid]) / 2;
+  const medianFpts = sortedAvgs.length > 0
+    ? (sortedAvgs.length % 2 !== 0 ? sortedAvgs[mid] : (sortedAvgs[mid - 1] + sortedAvgs[mid]) / 2)
+    : player.medianFpts;
 
-  // Calculate standard deviation
-  const avgFpts = avgFptsList.reduce((a, b) => a + b, 0) / avgFptsList.length;
-  const variance = avgFptsList.reduce((sum, val) => sum + Math.pow(val - avgFpts, 2), 0) / avgFptsList.length;
+  const variance = avgFptsList.length > 0
+    ? avgFptsList.reduce((sum, val) => sum + Math.pow(val - stats.avgFpts, 2), 0) / avgFptsList.length
+    : 0;
   const stdFpts = Math.sqrt(variance);
 
-  // Get all games in the filtered period
-  const filteredGames = player.games.filter(g => g.week >= minWeek);
-  const games50plus = filteredGames.filter(g => g.fpts >= 50).length;
-  const games60plus = filteredGames.filter(g => g.fpts >= 60).length;
-  const gamesUnder35 = filteredGames.filter(g => g.fpts < 35).length;
-
   return {
-    expectedLockin: maxFptsList.reduce((a, b) => a + b, 0) / maxFptsList.length,
-    avgFpts,
-    medianFpts: median,
-    stdFpts,
-    lockinCeiling: Math.max(...maxFptsList),
-    lockinFloor: Math.min(...maxFptsList),
-    avgMinutes: minutesList.reduce((a, b) => a + b, 0) / minutesList.length,
-    totalGames,
-    gamesPerWeek: totalGames / filteredWeeks.length,
-    pct50plus: (games50plus / filteredGames.length) * 100,
-    pct60plus: (games60plus / filteredGames.length) * 100,
-    pctUnder35: (gamesUnder35 / filteredGames.length) * 100,
-    weeks: filteredWeeks.length,
+    expectedLockin: stats.expectedLockin,
+    avgFpts: stats.avgFpts,
+    medianFpts,
+    stdFpts: stdFpts || player.stdFpts,
+    lockinCeiling: stats.ceiling,
+    lockinFloor: stats.floor,
+    avgMinutes: stats.avgMinutes,
+    totalGames: stats.games,
+    gamesPerWeek: stats.weeks > 0 ? stats.games / stats.weeks : player.gamesPerWeek,
+    pct50plus: filteredGames.length > 0 ? (games50plus / filteredGames.length) * 100 : player.pct50plus,
+    pct60plus: filteredGames.length > 0 ? (games60plus / filteredGames.length) * 100 : player.pct60plus,
+    pctUnder35: filteredGames.length > 0 ? (gamesUnder35 / filteredGames.length) * 100 : player.pctUnder35,
+    weeks: stats.weeks,
   };
 }
 
 // Get remaining games for a team this week
-function getRemainingGames(team: string, schedule: NBASchedule | null): { count: number; games: Array<{ opponent: string; home: boolean; date: string }> } {
+// Filter out games that have already occurred
+// We pass in playedDates (dates where player has game log entries) to know which games are done
+function getRemainingGames(
+  team: string,
+  schedule: NBASchedule | null,
+  playedDates?: Set<string>
+): { count: number; games: Array<{ opponent: string; home: boolean; date: string }> } {
   if (!schedule) return { count: 0, games: [] };
-  const remaining = schedule.remainingThisWeek[team] || [];
+  const allRemaining = schedule.remainingThisWeek[team] || [];
+
+  // If we have played dates, filter out games on dates the player has already played
+  // This handles: games in the past, games today that already finished
+  // And keeps: games today that haven't started, future games
+  const futureGames = playedDates
+    ? allRemaining.filter(g => !playedDates.has(g.date))
+    : allRemaining;
+
   return {
-    count: remaining.length,
-    games: remaining.map(g => ({ opponent: g.opponent, home: g.home, date: g.date })),
+    count: futureGames.length,
+    games: futureGames.map(g => ({ opponent: g.opponent, home: g.home, date: g.date })),
   };
 }
 
@@ -316,7 +318,6 @@ export default function PlayerDetail({ player, allPlayers, onBack, nbaSchedule, 
   };
 
   // This Week data
-  const remainingGames = getRemainingGames(player.nba_team, nbaSchedule);
   const weekEnd = nbaSchedule?.weekEnd || '';
   // Use actual current week from schedule (not from player data which may be outdated for injured players)
   const currentWeekNumber = nbaSchedule?.currentWeek || 13;
@@ -324,6 +325,18 @@ export default function PlayerDetail({ player, allPlayers, onBack, nbaSchedule, 
   // Get ACTUAL games played this week
   const thisWeekStats = player.weeklyStats.find(w => w.week === currentWeekNumber);
   const thisWeekGames = thisWeekStats?.gamesList || [];
+
+  // Create a set of dates the player has already played games on
+  const playedDates = useMemo(() => {
+    const dates = new Set<string>();
+    thisWeekGames.forEach(g => {
+      if (g.date) dates.add(g.date);
+    });
+    return dates;
+  }, [thisWeekGames]);
+
+  // Get remaining games, filtering out already-played dates
+  const remainingGames = getRemainingGames(player.nba_team, nbaSchedule, playedDates);
   const bestGameThisWeek = thisWeekStats?.maxFpts || 0;
   const gamesPlayedThisWeek = thisWeekStats?.games || 0;
 
@@ -331,8 +344,19 @@ export default function PlayerDetail({ player, allPlayers, onBack, nbaSchedule, 
   const selectedGame = selectedGameIdx !== null && thisWeekGames[selectedGameIdx]
     ? thisWeekGames[selectedGameIdx]
     : null;
-  const currentLockScore = selectedGame ? selectedGame.fpts : bestGameThisWeek;
   const isManualSelection = selectedGameIdx !== null;
+
+  // Calculate games remaining AFTER the selected game (for simulation)
+  // If game at index X is selected, remaining = (total week games - X - 1) + future scheduled games
+  const gamesAfterSelected = useMemo(() => {
+    if (selectedGameIdx === null) {
+      // Default: remaining games from schedule
+      return remainingGames.count;
+    }
+    // Games played after selected game this week + scheduled remaining
+    const gamesPlayedAfterSelection = thisWeekGames.length - selectedGameIdx - 1;
+    return gamesPlayedAfterSelection + remainingGames.count;
+  }, [selectedGameIdx, thisWeekGames.length, remainingGames.count]);
 
   // Recent form: get actual game logs from last 2 weeks
   const recentWeekNumbers = player.weeklyStats
@@ -348,7 +372,17 @@ export default function PlayerDetail({ player, allPlayers, onBack, nbaSchedule, 
   const isInjured = player.injury_status && ['OUT', 'OFS', 'SUS'].includes(player.injury_status);
   const isQuestionable = player.injury_status && ['GTD', 'QUESTIONABLE', 'DOUBTFUL'].includes(player.injury_status);
 
-  // Lock-in decision calculation with MATH
+  // Use canonical analysis from analytics.ts
+  // This uses the new algorithm: filtered healthy games from L6W, percentile-based ceiling
+  // Pass the selected score (or undefined to use actual best)
+  const thisWeekAnalysis: ThisWeekAnalysis = useMemo(() => {
+    const scoreToEvaluate = selectedGame ? selectedGame.fpts : undefined;
+    return analyzeThisWeek(player, currentWeekNumber, gamesAfterSelected, scoreToEvaluate);
+  }, [player, currentWeekNumber, gamesAfterSelected, selectedGame]);
+
+  const recommendationDisplay = getRecommendationDisplay(thisWeekAnalysis);
+
+  // Build lock advice object from canonical analysis
   const getLockAdvice = () => {
     // If injured/out, show that
     if (isInjured) {
@@ -358,7 +392,7 @@ export default function PlayerDetail({ player, allPlayers, onBack, nbaSchedule, 
           reason: `Player is ${player.injury_status}. Best available: ${bestGameThisWeek.toFixed(1)}`,
           icon: XCircle,
           color: '#ef4444',
-          math: null,
+          analysis: thisWeekAnalysis,
           isManual: false
         };
       }
@@ -367,119 +401,24 @@ export default function PlayerDetail({ player, allPlayers, onBack, nbaSchedule, 
         reason: `Player is ${player.injury_status} - no games this week`,
         icon: XCircle,
         color: '#6b7280',
-        math: null,
+        analysis: null,
         isManual: false
       };
     }
 
-    // No games played yet
-    if (gamesPlayedThisWeek === 0) {
-      return {
-        verdict: 'WAIT',
-        reason: `No games played yet. ${remainingGames.count} game(s) remaining.`,
-        icon: AlertCircle,
-        color: '#f59e0b',
-        math: null,
-        isManual: false
-      };
-    }
-
-    // Use currentLockScore (either manually selected or best game)
-    const scoreToEvaluate = currentLockScore;
-
-    // Calculate probability of beating current selection
-    const weeklyMaxes = player.weeklyStats.map(w => w.maxFpts);
-    const weeksBeatingCurrent = weeklyMaxes.filter(m => m > scoreToEvaluate).length;
-    const probBeatCurrent = (weeksBeatingCurrent / weeklyMaxes.length) * 100;
-
-    // Per-game probability of beating current selection
-    const allGameFpts = player.games.map(g => g.fpts);
-    const gamesBeatingCurrent = allGameFpts.filter(f => f > scoreToEvaluate).length;
-    const perGameProbBeat = (gamesBeatingCurrent / allGameFpts.length) * 100;
-
-    // Combined probability: chance of beating current in remaining games
-    // P(at least one game beats current) = 1 - P(all games fail to beat)
-    const probAllFail = Math.pow(1 - (perGameProbBeat / 100), remainingGames.count);
-    const probImprove = (1 - probAllFail) * 100;
-
-    // How close is current selection to ceiling?
-    const ceilingProximity = (scoreToEvaluate / player.lockinCeiling) * 100;
-    const isNearCeiling = ceilingProximity >= 85;
-
-    // Is current selection better than expected?
-    const aboveExpected = scoreToEvaluate > player.expectedLockin;
-
-    const math = {
-      probBeatCurrent: probBeatCurrent.toFixed(0),
-      perGameProbBeat: perGameProbBeat.toFixed(0),
-      probImprove: probImprove.toFixed(0),
-      ceilingProximity: ceilingProximity.toFixed(0),
-      gamesLeft: remainingGames.count,
-      selectedScore: scoreToEvaluate.toFixed(1)
+    // Map recommendation to icon
+    const iconMap = {
+      LOCK: CheckCircle,
+      WAIT: AlertCircle,
+      HOLD: AlertCircle,
     };
 
-    // Decision logic
-    if (remainingGames.count === 0) {
-      return {
-        verdict: 'LOCK',
-        reason: `No more games. Lock at ${scoreToEvaluate.toFixed(1)}.`,
-        icon: scoreToEvaluate >= 40 ? CheckCircle : XCircle,
-        color: scoreToEvaluate >= 45 ? '#22c55e' : scoreToEvaluate >= 40 ? '#84cc16' : '#ef4444',
-        math,
-        isManual: isManualSelection
-      };
-    }
-
-    if (isNearCeiling) {
-      return {
-        verdict: 'LOCK',
-        reason: `${scoreToEvaluate.toFixed(1)} is ${ceilingProximity.toFixed(0)}% of ceiling (${player.lockinCeiling.toFixed(1)}). Hard to beat.`,
-        icon: CheckCircle,
-        color: '#22c55e',
-        math,
-        isManual: isManualSelection
-      };
-    }
-
-    if (probImprove < 20) {
-      return {
-        verdict: 'LOCK',
-        reason: `Only ${probImprove.toFixed(0)}% chance to beat ${scoreToEvaluate.toFixed(1)} in ${remainingGames.count} game(s).`,
-        icon: CheckCircle,
-        color: '#22c55e',
-        math,
-        isManual: isManualSelection
-      };
-    }
-
-    if (probImprove >= 50 && !aboveExpected) {
-      return {
-        verdict: 'WAIT',
-        reason: `${probImprove.toFixed(0)}% chance to beat ${scoreToEvaluate.toFixed(1)}. Current is below expected (${player.expectedLockin.toFixed(1)}).`,
-        icon: AlertCircle,
-        color: '#f59e0b',
-        math,
-        isManual: isManualSelection
-      };
-    }
-
-    if (probImprove >= 35) {
-      return {
-        verdict: 'WAIT',
-        reason: `${probImprove.toFixed(0)}% chance to improve with ${remainingGames.count} game(s) left.`,
-        icon: AlertCircle,
-        color: '#f59e0b',
-        math,
-        isManual: isManualSelection
-      };
-    }
-
     return {
-      verdict: 'LOCK',
-      reason: `${scoreToEvaluate.toFixed(1)} is solid. Only ${probImprove.toFixed(0)}% chance to improve.`,
-      icon: CheckCircle,
-      color: aboveExpected ? '#22c55e' : '#84cc16',
-      math,
+      verdict: thisWeekAnalysis.recommendation,
+      reason: recommendationDisplay.description,
+      icon: iconMap[thisWeekAnalysis.recommendation],
+      color: recommendationDisplay.color,
+      analysis: thisWeekAnalysis,
       isManual: isManualSelection
     };
   };
@@ -572,19 +511,33 @@ export default function PlayerDetail({ player, allPlayers, onBack, nbaSchedule, 
               </div>
             </div>
             <div className="advice-reason">{lockAdvice.reason}</div>
-            {lockAdvice.math && (
+            {lockAdvice.analysis && (
               <div className="advice-math">
                 <div className="math-row">
-                  <span className="math-label">Current Best vs Ceiling:</span>
-                  <span className="math-value">{lockAdvice.math.ceilingProximity}%</span>
+                  <span className="math-label">Current ({lockAdvice.analysis.currentBest.toFixed(1)}) vs Ceiling ({lockAdvice.analysis.realisticCeiling.toFixed(1)}):</span>
+                  <span className="math-value">
+                    {lockAdvice.analysis.realisticCeiling > 0
+                      ? ((lockAdvice.analysis.currentBest / lockAdvice.analysis.realisticCeiling) * 100).toFixed(0)
+                      : 0}%
+                  </span>
                 </div>
                 <div className="math-row">
-                  <span className="math-label">% of games that beat current:</span>
-                  <span className="math-value">{lockAdvice.math.perGameProbBeat}%</span>
+                  <span className="math-label">Single game chance to beat {lockAdvice.analysis.currentBest.toFixed(1)}:</span>
+                  <span className="math-value">{lockAdvice.analysis.singleGameChance.toFixed(0)}%</span>
                 </div>
                 <div className="math-row highlight">
-                  <span className="math-label">Chance to improve ({lockAdvice.math.gamesLeft} game{lockAdvice.math.gamesLeft !== 1 ? 's' : ''}):</span>
-                  <span className="math-value">{lockAdvice.math.probImprove}%</span>
+                  <span className="math-label">
+                    Combined chance ({lockAdvice.analysis.gamesRemaining} game{lockAdvice.analysis.gamesRemaining !== 1 ? 's' : ''}):
+                  </span>
+                  <span className="math-value">{lockAdvice.analysis.chanceToImprove.toFixed(0)}%</span>
+                </div>
+                <div className="math-row sub">
+                  <span className="math-label">
+                    Formula: 1 - (1 - {(lockAdvice.analysis.singleGameChance / 100).toFixed(2)})^{lockAdvice.analysis.gamesRemaining} = {(lockAdvice.analysis.chanceToImprove / 100).toFixed(2)}
+                  </span>
+                </div>
+                <div className="math-row sub">
+                  <span className="math-label">Based on {lockAdvice.analysis.filteredGamesCount} healthy games (L6W, {lockAdvice.analysis.minMinutesThreshold.toFixed(0)}+ min)</span>
                 </div>
               </div>
             )}
@@ -660,8 +613,8 @@ export default function PlayerDetail({ player, allPlayers, onBack, nbaSchedule, 
                 {bestGameThisWeek > 0 ? bestGameThisWeek.toFixed(1) : '—'}
               </div>
               <div className="week-stat-sub">
-                {bestGameThisWeek > 0 && (
-                  <>vs ceiling {player.lockinCeiling.toFixed(1)} ({((bestGameThisWeek / player.lockinCeiling) * 100).toFixed(0)}%)</>
+                {bestGameThisWeek > 0 && thisWeekAnalysis.realisticCeiling > 0 && (
+                  <>vs ceiling {thisWeekAnalysis.realisticCeiling.toFixed(1)} ({((bestGameThisWeek / thisWeekAnalysis.realisticCeiling) * 100).toFixed(0)}%)</>
                 )}
               </div>
             </div>
@@ -675,9 +628,11 @@ export default function PlayerDetail({ player, allPlayers, onBack, nbaSchedule, 
             </div>
 
             <div className="week-stat-card">
-              <div className="week-stat-label">Exp. Lock-In</div>
-              <div className="week-stat-value">{player.expectedLockin.toFixed(1)}</div>
-              <div className="week-stat-sub">Range: {player.lockinFloor.toFixed(0)} - {player.lockinCeiling.toFixed(0)}</div>
+              <div className="week-stat-label">Realistic Range (L6W)</div>
+              <div className="week-stat-value">{thisWeekAnalysis.expectedValue.toFixed(1)}</div>
+              <div className="week-stat-sub">
+                Floor: {thisWeekAnalysis.realisticFloor.toFixed(0)} | Ceiling: {thisWeekAnalysis.realisticCeiling.toFixed(0)}
+              </div>
             </div>
 
             <div className="week-stat-card">

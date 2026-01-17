@@ -141,6 +141,42 @@ def fetch_sleeper_league() -> dict:
     return response.json()
 
 
+def fetch_sleeper_matchups(week: int) -> list:
+    """Fetch matchups for a given week from Sleeper API."""
+    url = f"{SLEEPER_BASE}/league/{LEAGUE_ID}/matchups/{week}"
+    response = requests.get(url)
+    response.raise_for_status()
+    return response.json()
+
+
+def fetch_all_matchups(max_week: int) -> dict:
+    """Fetch matchups for all weeks up to max_week."""
+    log(f"Fetching matchups for weeks 1-{max_week}...")
+    all_matchups = {}
+
+    for week in range(1, max_week + 1):
+        try:
+            matchups = fetch_sleeper_matchups(week)
+            # Group by matchup_id
+            grouped = {}
+            for m in matchups:
+                matchup_id = m.get("matchup_id")
+                if matchup_id is not None:
+                    if matchup_id not in grouped:
+                        grouped[matchup_id] = []
+                    grouped[matchup_id].append({
+                        "roster_id": m.get("roster_id"),
+                        "starters": m.get("starters", []),
+                        "points": m.get("points", 0),
+                    })
+            all_matchups[str(week)] = grouped
+            time.sleep(0.1)  # Small delay between requests
+        except Exception as e:
+            log(f"  Warning: Could not fetch matchups for week {week}: {e}")
+
+    return all_matchups
+
+
 def fetch_sleeper_all_players() -> dict:
     """Fetch ALL NBA players from Sleeper API."""
     log("Fetching all NBA players from Sleeper API...")
@@ -473,6 +509,22 @@ def process_data(quick: bool = False, include_free_agents: bool = False, free_ag
     with open(rosters_path, "w") as f:
         json.dump(roster_data, f, indent=2)
     log(f"Saved rosters to {rosters_path}")
+
+    # Fetch and save matchups for all weeks
+    try:
+        # Calculate current week
+        today = datetime.now()
+        days_since_start = (today - SEASON_START).days
+        current_week = max(1, (days_since_start // 7) + 1)
+
+        matchups_data = fetch_all_matchups(current_week)
+        matchups_path = DASHBOARD_PUBLIC / "matchups.json"
+        with open(matchups_path, "w") as f:
+            json.dump(matchups_data, f, indent=2)
+        log(f"Saved matchups to {matchups_path}")
+        log(f"  - {len(matchups_data)} weeks of matchup data")
+    except Exception as e:
+        log(f"Warning: Could not fetch matchups: {e}")
 
     if quick:
         log("=" * 60)

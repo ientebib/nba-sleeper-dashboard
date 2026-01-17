@@ -18,7 +18,7 @@
         "name": "Jamal Murray",
         "team": "DEN",
         "position": "PG",
-        "injury_status": null
+        "injury_status": "GTD"
       },
       {
         "sleeper_id": "1845",
@@ -32,7 +32,7 @@
         "name": "Luka Don\u010di\u0107",
         "team": "LAL",
         "position": "PG",
-        "injury_status": null
+        "injury_status": "Out"
       },
       {
         "sleeper_id": "2145",
@@ -125,11 +125,11 @@
       "2145",
       "2233",
       "2455",
-      "2574",
-      "4751",
+      "4740",
+      "1350",
       "1845",
       "2590",
-      "4740"
+      "2752"
     ]
   },
   {
@@ -151,7 +151,7 @@
         "name": "Kawhi Leonard",
         "team": "LAC",
         "position": "PF",
-        "injury_status": null
+        "injury_status": "DTD"
       },
       {
         "sleeper_id": "1583",
@@ -165,7 +165,7 @@
         "name": "Aaron Gordon",
         "team": "DEN",
         "position": "PF",
-        "injury_status": null
+        "injury_status": "GTD"
       },
       {
         "sleeper_id": "1595",
@@ -179,14 +179,14 @@
         "name": "Pascal Siakam",
         "team": "IND",
         "position": "PF",
-        "injury_status": null
+        "injury_status": "Out"
       },
       {
         "sleeper_id": "1718",
         "name": "Jakob Poeltl",
         "team": "TOR",
         "position": "C",
-        "injury_status": "Out"
+        "injury_status": "DTD"
       },
       {
         "sleeper_id": "1831",
@@ -221,14 +221,14 @@
         "name": "Cade Cunningham",
         "team": "DET",
         "position": "PG",
-        "injury_status": null
+        "injury_status": "GTD"
       },
       {
         "sleeper_id": "2281",
         "name": "Santi Aldama",
         "team": "MEM",
         "position": "PF",
-        "injury_status": null
+        "injury_status": "DTD"
       },
       {
         "sleeper_id": "2284",
@@ -242,7 +242,7 @@
         "name": "Andrew Nembhard",
         "team": "IND",
         "position": "SG",
-        "injury_status": null
+        "injury_status": "Out"
       },
       {
         "sleeper_id": "2568",
@@ -260,7 +260,7 @@
       "1846",
       "1308",
       "1583",
-      "2281",
+      "1831",
       "2284",
       "1585"
     ]
@@ -340,7 +340,7 @@
         "name": "P.J. Washington",
         "team": "DAL",
         "position": "PF",
-        "injury_status": "GTD"
+        "injury_status": "Out"
       },
       {
         "sleeper_id": "2036",
@@ -361,14 +361,14 @@
         "name": "Anthony Edwards",
         "team": "MIN",
         "position": "SG",
-        "injury_status": "DTD"
+        "injury_status": "GTD"
       },
       {
         "sleeper_id": "2449",
         "name": "Dyson Daniels",
         "team": "ATL",
         "position": "PG",
-        "injury_status": null
+        "injury_status": "GTD"
       },
       {
         "sleeper_id": "2733",
@@ -393,8 +393,8 @@
       "1613",
       "2835",
       "1590",
-      "1997",
-      "1830",
+      "2036",
+      "1787",
       "2733"
     ]
   },
@@ -417,7 +417,7 @@
         "name": "Jrue Holiday",
         "team": "POR",
         "position": "PG",
-        "injury_status": null
+        "injury_status": "GTD"
       },
       {
         "sleeper_id": "1321",
@@ -431,7 +431,14 @@
         "name": "Giannis Antetokounmpo",
         "team": "MIL",
         "position": "PF",
-        "injury_status": "GTD"
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1487",
+        "name": "Tobias Harris",
+        "team": "DET",
+        "position": "PF",
+        "injury_status": null
       },
       {
         "sleeper_id": "1535",
@@ -445,7 +452,7 @@
         "name": "Devin Booker",
         "team": "PHX",
         "position": "SG",
-        "injury_status": "Out"
+        "injury_status": "GTD"
       },
       {
         "sleeper_id": "1752",
@@ -466,7 +473,7 @@
         "name": "Tyler Herro",
         "team": "MIA",
         "position": "SG",
-        "injury_status": null
+        "injury_status": "GTD"
       },
       {
         "sleeper_id": "2285",
@@ -474,13 +481,6 @@
         "team": "NOP",
         "position": "SF",
         "injury_status": null
-      },
-      {
-        "sleeper_id": "2474",
-        "name": "Moussa Diabat\u00e9",
-        "team": "CHA",
-        "position": "C",
-        "injury_status": "GTD"
       },
       {
         "sleeper_id": "2580",
@@ -526,8 +526,8 @@
       "1752",
       "2285",
       "1535",
-      "1380",
-      "2714",
+      "1085",
+      "1648",
       "2086"
     ]
   },
@@ -557,14 +557,14 @@
         "name": "Ivica Zubac",
         "team": "LAC",
         "position": "C",
-        "injury_status": "DTD"
+        "injury_status": null
       },
       {
         "sleeper_id": "1739",
         "name": "Domantas Sabonis",
         "team": "SAC",
         "position": "C",
-        "injury_status": "Out"
+        "injury_status": null
       },
       {
         "sleeper_id": "1913",
@@ -599,7 +599,7 @@
         "name": "Payton Pritchard",
         "team": "BOS",
         "position": "PG",
-        "injury_status": null
+        "injury_status": "Out"
       },
       {
         "sleeper_id": "2259",
@@ -620,7 +620,7 @@
         "name": "Jalen Duren",
         "team": "DET",
         "position": "C",
-        "injury_status": "GTD"
+        "injury_status": null
       },
       {
         "sleeper_id": "2440",
@@ -725,7 +725,7 @@
         "name": "Deandre Ayton",
         "team": "LAL",
         "position": "C",
-        "injury_status": null
+        "injury_status": "GTD"
       },
       {
         "sleeper_id": "2009",
@@ -746,7 +746,7 @@
         "name": "Ja Morant",
         "team": "MEM",
         "position": "PG",
-        "injury_status": "Out"
+        "injury_status": "DTD"
       },
       {
         "sleeper_id": "2143",
@@ -777,24 +777,24 @@
         "injury_status": null
       },
       {
-        "sleeper_id": "2566",
-        "name": "Ausar Thompson",
-        "team": "DET",
-        "position": "SG",
+        "sleeper_id": "2610",
+        "name": "Jordan Miller",
+        "team": "LAC",
+        "position": "SF",
         "injury_status": null
       }
     ],
     "starters": [
       "1240",
       "2453",
-      "2009",
+      "2610",
       "1698",
       "2032",
       "1433",
       "1974",
       "2143",
-      "2566",
-      "2463"
+      "1434",
+      "1964"
     ]
   },
   {
@@ -844,7 +844,14 @@
         "name": "John Collins",
         "team": "LAC",
         "position": "PF",
-        "injury_status": "DTD"
+        "injury_status": null
+      },
+      {
+        "sleeper_id": "1959",
+        "name": "Grayson Allen",
+        "team": "PHX",
+        "position": "SF",
+        "injury_status": null
       },
       {
         "sleeper_id": "1998",
@@ -861,18 +868,11 @@
         "injury_status": null
       },
       {
-        "sleeper_id": "2159",
-        "name": "Isaiah Stewart",
-        "team": "DET",
-        "position": "C",
-        "injury_status": "GTD"
-      },
-      {
         "sleeper_id": "2181",
         "name": "Deni Avdija",
         "team": "POR",
         "position": "PF",
-        "injury_status": "Out"
+        "injury_status": "GTD"
       },
       {
         "sleeper_id": "2289",
@@ -882,9 +882,9 @@
         "injury_status": null
       },
       {
-        "sleeper_id": "2445",
-        "name": "Jabari Smith",
-        "team": "HOU",
+        "sleeper_id": "2324",
+        "name": "Justin Champagnie",
+        "team": "WAS",
         "position": "PF",
         "injury_status": null
       },
@@ -900,7 +900,7 @@
         "name": "Bilal Coulibaly",
         "team": "WAS",
         "position": "PF",
-        "injury_status": "DTD"
+        "injury_status": "Out"
       },
       {
         "sleeper_id": "2577",
@@ -914,18 +914,18 @@
         "name": "Stephon Castle",
         "team": "SAS",
         "position": "SG",
-        "injury_status": null
+        "injury_status": "GTD"
       }
     ],
     "starters": [
-      "2126",
-      "1000",
       "2722",
-      "1711",
-      "2289",
-      "2565",
-      "2159",
+      "1000",
+      "2126",
       "1525",
+      "2289",
+      "1711",
+      "1511",
+      "2324",
       "1526",
       "2577"
     ]
@@ -963,7 +963,7 @@
         "name": "Josh Hart",
         "team": "NYK",
         "position": "SG",
-        "injury_status": null
+        "injury_status": "GTD"
       },
       {
         "sleeper_id": "1822",
@@ -998,14 +998,14 @@
         "name": "Jalen Brunson",
         "team": "NYK",
         "position": "PG",
-        "injury_status": "Out"
+        "injury_status": "GTD"
       },
       {
         "sleeper_id": "2001",
         "name": "RJ Barrett",
         "team": "TOR",
         "position": "SF",
-        "injury_status": "Out"
+        "injury_status": "DTD"
       },
       {
         "sleeper_id": "2135",

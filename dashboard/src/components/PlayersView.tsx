@@ -29,7 +29,16 @@ import {
 } from 'recharts';
 import type { PlayerAnalytics } from '../types';
 import type { NBASchedule } from '../lib/dataLoader';
-import { filterByWeeks } from '../lib/analytics';
+import {
+  filterByWeeks,
+  calcPlayerPeriodStats,
+  calcPlayerTrends,
+  getRemainingGames,
+  getTrendClass,
+  TIME_PERIODS,
+  CHART_COLORS,
+  type TimePeriod,
+} from '../lib/analytics';
 import './PlayersView.css';
 
 interface Props {
@@ -40,137 +49,12 @@ interface Props {
   nbaSchedule: NBASchedule | null;
 }
 
-type SortKey = 'expectedLockin' | 'avgFpts' | 'lockinCeiling' | 'lockinFloor' | 'avgMinutes' | 'totalGames' | 'lockinTrendPct';
+type SortKey = 'expectedLockin' | 'avgFpts' | 'lockinCeiling' | 'lockinFloor' | 'avgMinutes' | 'totalGames' | 'lockinTrendPct' | 'pct40plus' | 'pct45plus' | 'pctBust' | 'reliability' | 'l2w' | 'l4w' | 'delta2v4' | 'delta4v8' | 'gamesLeft';
 type SortDir = 'asc' | 'desc';
-type TimePeriod = 'all' | 'L3W' | 'L4W' | 'L6W' | 'L8W';
 
-const TIME_PERIODS: { value: TimePeriod; label: string; weeks: number }[] = [
-  { value: 'all', label: 'Season', weeks: 99 },
-  { value: 'L3W', label: '3W', weeks: 3 },
-  { value: 'L4W', label: '4W', weeks: 4 },
-  { value: 'L6W', label: '6W', weeks: 6 },
-  { value: 'L8W', label: '8W', weeks: 8 },
-];
-
-const CHART_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
-
-function calcPlayerStats(player: PlayerAnalytics, maxWeeks: number) {
-  const currentWeek = Math.max(...player.weeklyStats.map(w => w.week));
-  const minWeek = maxWeeks === 99 ? 1 : currentWeek - maxWeeks + 1;
-  const filteredWeeks = player.weeklyStats.filter(w => w.week >= minWeek);
-
-  if (filteredWeeks.length === 0) {
-    return {
-      expectedLockin: 0,
-      medianLockin: 0,
-      avgFpts: 0,
-      ceiling: 0,
-      floor: 0,
-      avgMinutes: 0,
-      pct40plus: 0,  // % weeks with 40+ game (playable)
-      pct45plus: 0,  // % weeks with 45+ game (confident lock)
-      pctBust: 0,    // % weeks under 35 (bust)
-      reliability: 0, // composite reliability score
-    };
-  }
-
-  const maxFptsList = filteredWeeks.map(w => w.maxFpts);
-  const avgFptsList = filteredWeeks.map(w => w.avgFpts);
-  const minutesList = filteredWeeks.map(w => w.avgMinutes);
-  const totalWeeks = maxFptsList.length;
-
-  const avg = maxFptsList.reduce((a, b) => a + b, 0) / totalWeeks;
-  const ceiling = Math.max(...maxFptsList);
-  const floor = Math.min(...maxFptsList);
-
-  // Median lock-in (more robust than average)
-  const sortedMaxes = [...maxFptsList].sort((a, b) => a - b);
-  const mid = Math.floor(sortedMaxes.length / 2);
-  const medianLockin = sortedMaxes.length % 2 !== 0
-    ? sortedMaxes[mid]
-    : (sortedMaxes[mid - 1] + sortedMaxes[mid]) / 2;
-
-  // Reliability metrics
-  const weeks40plus = maxFptsList.filter(v => v >= 40).length;
-  const weeks45plus = maxFptsList.filter(v => v >= 45).length;
-  const weeksBust = maxFptsList.filter(v => v < 35).length;
-
-  const pct40plus = (weeks40plus / totalWeeks) * 100;
-  const pct45plus = (weeks45plus / totalWeeks) * 100;
-  const pctBust = (weeksBust / totalWeeks) * 100;
-
-  // Composite Reliability Score:
-  // - 50% playable rate (40+)
-  // - 30% confident lock rate (45+)
-  // - 20% inverse bust rate (100 - bust%)
-  const reliability = (pct40plus * 0.5) + (pct45plus * 0.3) + ((100 - pctBust) * 0.2);
-
-  return {
-    expectedLockin: avg,
-    medianLockin,
-    avgFpts: avgFptsList.reduce((a, b) => a + b, 0) / avgFptsList.length,
-    ceiling,
-    floor,
-    avgMinutes: minutesList.reduce((a, b) => a + b, 0) / minutesList.length,
-    pct40plus,
-    pct45plus,
-    pctBust,
-    reliability: Math.max(0, Math.min(100, reliability)),
-  };
-}
-
-// Calculate Lock-In for specific week range
-function calcLockinForWeeks(player: PlayerAnalytics, startWeeksAgo: number, endWeeksAgo: number = 0) {
-  const currentWeek = Math.max(...player.weeklyStats.map(w => w.week));
-  const startWeek = currentWeek - startWeeksAgo + 1;
-  const endWeek = currentWeek - endWeeksAgo;
-
-  const filteredWeeks = player.weeklyStats.filter(w => w.week >= startWeek && w.week <= endWeek);
-  if (filteredWeeks.length === 0) return null;
-
-  const maxes = filteredWeeks.map(w => w.maxFpts);
-  return maxes.reduce((a, b) => a + b, 0) / maxes.length;
-}
-
-// Calculate all trend comparisons for a player
-function calcTrends(player: PlayerAnalytics) {
-  const l2w = calcLockinForWeeks(player, 2, 0);  // Last 2 weeks
-  const l4w = calcLockinForWeeks(player, 4, 0);  // Last 4 weeks
-  const prev2w = calcLockinForWeeks(player, 4, 2);  // Weeks 3-4 ago
-  const prev4w = calcLockinForWeeks(player, 8, 4);  // Weeks 5-8 ago
-
-  // Δ2v4: Recent 2 weeks vs prior 2 weeks (short-term momentum)
-  const delta2v4 = (l2w !== null && prev2w !== null && prev2w > 0)
-    ? ((l2w - prev2w) / prev2w) * 100
-    : null;
-
-  // Δ4v8: Recent 4 weeks vs prior 4 weeks (medium-term trend)
-  const delta4v8 = (l4w !== null && prev4w !== null && prev4w > 0)
-    ? ((l4w - prev4w) / prev4w) * 100
-    : null;
-
-  return { l2w, l4w, delta2v4, delta4v8 };
-}
-
-// Get trend class based on value
-function getTrendClass(value: number | null): string {
-  if (value === null) return '';
-  if (value >= 15) return 'trend-hot';
-  if (value >= 5) return 'trend-up';
-  if (value <= -15) return 'trend-cold';
-  if (value <= -5) return 'trend-down';
-  return 'trend-flat';
-}
-
-// Get remaining games for a team this week
-function getRemainingGames(team: string, schedule: NBASchedule | null): { count: number; games: Array<{ opponent: string; home: boolean; date: string }> } {
-  if (!schedule) return { count: 0, games: [] };
-  const remaining = schedule.remainingThisWeek[team] || [];
-  return {
-    count: remaining.length,
-    games: remaining.map(g => ({ opponent: g.opponent, home: g.home, date: g.date })),
-  };
-}
+// Use shared calculation utilities from analytics.ts
+const calcPlayerStats = calcPlayerPeriodStats;
+const calcTrends = calcPlayerTrends;
 
 export default function PlayersView({ players, weekFilter, onWeekFilterChange, onPlayerSelect, nbaSchedule }: Props) {
   const [search, setSearch] = useState('');
@@ -181,14 +65,16 @@ export default function PlayersView({ players, weekFilter, onWeekFilterChange, o
   const [selectedPlayers, setSelectedPlayers] = useState<PlayerAnalytics[]>([]);
   const [showComparison, setShowComparison] = useState(false);
   const [comparisonPeriod, setComparisonPeriod] = useState<TimePeriod>('all');
+  const [tablePeriod, setTablePeriod] = useState<TimePeriod>('all');
 
   const periodConfig = TIME_PERIODS.find(p => p.value === comparisonPeriod)!;
+  const tablePeriodConfig = TIME_PERIODS.find(p => p.value === tablePeriod)!;
 
   // Get unique teams and positions
   const fantasyTeams = useMemo(() => [...new Set(players.map(p => p.fantasy_team))].sort(), [players]);
   const positions = useMemo(() => [...new Set(players.map(p => p.position))].sort(), [players]);
 
-  // Filter and sort players
+  // Filter and sort players with period stats
   const filteredPlayers = useMemo(() => {
     let result = weekFilter.length > 0 ? filterByWeeks(players, weekFilter) : players;
 
@@ -212,15 +98,112 @@ export default function PlayersView({ players, weekFilter, onWeekFilterChange, o
       result = result.filter(p => p.position === positionFilter);
     }
 
-    // Sort
-    result = [...result].sort((a, b) => {
-      const aVal = a[sortKey] as number;
-      const bVal = b[sortKey] as number;
-      return sortDir === 'desc' ? bVal - aVal : aVal - bVal;
+    // Calculate period stats for each player
+    const playersWithPeriodStats = result.map(p => {
+      const periodStats = calcPlayerStats(p, tablePeriodConfig.weeks);
+      return {
+        ...p,
+        periodExpectedLockin: periodStats.expectedLockin,
+        periodAvgFpts: periodStats.avgFpts,
+        periodCeiling: periodStats.ceiling,
+        periodFloor: periodStats.floor,
+        periodPct40plus: periodStats.pct40plus,
+        periodPct45plus: periodStats.pct45plus,
+        periodPctBust: periodStats.pctBust,
+        periodReliability: periodStats.reliability,
+        periodAvgMinutes: periodStats.avgMinutes,
+      };
     });
 
-    return result;
-  }, [players, weekFilter, search, teamFilter, positionFilter, sortKey, sortDir]);
+    // Sort based on period values when period is selected
+    return [...playersWithPeriodStats].sort((a, b) => {
+      let aVal: number, bVal: number;
+
+      // Handle computed sort keys
+      if (sortKey === 'l2w' || sortKey === 'l4w' || sortKey === 'delta2v4' || sortKey === 'delta4v8') {
+        const aTrends = calcTrends(a);
+        const bTrends = calcTrends(b);
+        aVal = aTrends[sortKey] ?? -Infinity;
+        bVal = bTrends[sortKey] ?? -Infinity;
+      } else if (sortKey === 'pct40plus') {
+        aVal = a.periodPct40plus;
+        bVal = b.periodPct40plus;
+      } else if (sortKey === 'pct45plus') {
+        aVal = a.periodPct45plus;
+        bVal = b.periodPct45plus;
+      } else if (sortKey === 'pctBust') {
+        aVal = a.periodPctBust;
+        bVal = b.periodPctBust;
+      } else if (sortKey === 'reliability') {
+        aVal = a.periodReliability;
+        bVal = b.periodReliability;
+      } else if (sortKey === 'gamesLeft') {
+        aVal = getRemainingGames(a.nba_team, nbaSchedule, a).count;
+        bVal = getRemainingGames(b.nba_team, nbaSchedule, b).count;
+      } else if (tablePeriod !== 'all') {
+        // Use period-specific values for sorting
+        switch (sortKey) {
+          case 'expectedLockin':
+            aVal = a.periodExpectedLockin;
+            bVal = b.periodExpectedLockin;
+            break;
+          case 'avgFpts':
+            aVal = a.periodAvgFpts;
+            bVal = b.periodAvgFpts;
+            break;
+          case 'lockinCeiling':
+            aVal = a.periodCeiling;
+            bVal = b.periodCeiling;
+            break;
+          case 'lockinFloor':
+            aVal = a.periodFloor;
+            bVal = b.periodFloor;
+            break;
+          case 'avgMinutes':
+            aVal = a.periodAvgMinutes;
+            bVal = b.periodAvgMinutes;
+            break;
+          default:
+            aVal = a[sortKey] as number;
+            bVal = b[sortKey] as number;
+        }
+      } else {
+        aVal = a[sortKey] as number;
+        bVal = b[sortKey] as number;
+      }
+      return sortDir === 'desc' ? bVal - aVal : aVal - bVal;
+    });
+  }, [players, weekFilter, search, teamFilter, positionFilter, sortKey, sortDir, tablePeriod, tablePeriodConfig.weeks, nbaSchedule]);
+
+  // Calculate position rankings based on lock-in for the selected period
+  const positionRankings = useMemo(() => {
+    // First calculate period stats for ALL players (not just filtered)
+    const allWithPeriodStats = players.map(p => {
+      const periodStats = calcPlayerStats(p, tablePeriodConfig.weeks);
+      return {
+        sleeper_id: p.sleeper_id,
+        position: p.position,
+        periodExpectedLockin: periodStats.expectedLockin,
+      };
+    });
+
+    // Group by position and sort by lock-in
+    const byPosition: Record<string, typeof allWithPeriodStats> = {};
+    for (const p of allWithPeriodStats) {
+      if (!byPosition[p.position]) byPosition[p.position] = [];
+      byPosition[p.position].push(p);
+    }
+
+    // Sort each position and assign ranks
+    const rankings: Record<string, number> = {};
+    for (const pos in byPosition) {
+      byPosition[pos].sort((a, b) => b.periodExpectedLockin - a.periodExpectedLockin);
+      byPosition[pos].forEach((p, idx) => {
+        rankings[p.sleeper_id] = idx + 1;
+      });
+    }
+    return rankings;
+  }, [players, tablePeriodConfig.weeks]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -329,6 +312,19 @@ export default function PlayersView({ players, weekFilter, onWeekFilterChange, o
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
+        </div>
+
+        <div className="time-period-selector">
+          <Calendar size={14} />
+          {TIME_PERIODS.map(period => (
+            <button
+              key={period.value}
+              className={`period-btn ${tablePeriod === period.value ? 'active' : ''}`}
+              onClick={() => setTablePeriod(period.value)}
+            >
+              {period.label}
+            </button>
+          ))}
         </div>
 
         <select
@@ -595,7 +591,9 @@ export default function PlayersView({ players, weekFilter, onWeekFilterChange, o
                 <th>Player</th>
                 <th>Team</th>
                 <th>Pos</th>
-                <th title="Games remaining this week" className="games-left-header">Left</th>
+                <th title="Games remaining this week" className="sortable games-left-header" onClick={() => handleSort('gamesLeft')}>
+                  Left <SortIcon column="gamesLeft" />
+                </th>
                 <th className="sortable" onClick={() => handleSort('totalGames')}>
                   GP <SortIcon column="totalGames" />
                 </th>
@@ -611,14 +609,30 @@ export default function PlayersView({ players, weekFilter, onWeekFilterChange, o
                 <th className="sortable" onClick={() => handleSort('lockinFloor')}>
                   Floor <SortIcon column="lockinFloor" />
                 </th>
-                <th title="% of weeks with a 40+ game (playable)">40+%</th>
-                <th title="% of weeks with a 45+ game (confident lock)">45+%</th>
-                <th title="% of weeks under 35 (bust rate)">Bust%</th>
-                <th title="Reliability score: playable rate + lock rate - bust rate">Rel</th>
-                <th title="Lock-In average last 2 weeks">L2W</th>
-                <th title="Lock-In average last 4 weeks">L4W</th>
-                <th title="Short-term momentum: L2W vs weeks 3-4 ago" className="trend-header">Δ2v4</th>
-                <th title="Medium-term trend: L4W vs weeks 5-8 ago" className="trend-header">Δ4v8</th>
+                <th title="% of weeks with a 40+ game (playable)" className="sortable" onClick={() => handleSort('pct40plus')}>
+                  40+% <SortIcon column="pct40plus" />
+                </th>
+                <th title="% of weeks with a 45+ game (confident lock)" className="sortable" onClick={() => handleSort('pct45plus')}>
+                  45+% <SortIcon column="pct45plus" />
+                </th>
+                <th title="% of weeks under 35 (bust rate)" className="sortable" onClick={() => handleSort('pctBust')}>
+                  Bust% <SortIcon column="pctBust" />
+                </th>
+                <th title="Reliability score: playable rate + lock rate - bust rate" className="sortable" onClick={() => handleSort('reliability')}>
+                  Rel <SortIcon column="reliability" />
+                </th>
+                <th title="Lock-In average last 2 weeks" className="sortable" onClick={() => handleSort('l2w')}>
+                  L2W <SortIcon column="l2w" />
+                </th>
+                <th title="Lock-In average last 4 weeks" className="sortable" onClick={() => handleSort('l4w')}>
+                  L4W <SortIcon column="l4w" />
+                </th>
+                <th title="Short-term momentum: L2W vs weeks 3-4 ago" className="sortable trend-header" onClick={() => handleSort('delta2v4')}>
+                  Δ2v4 <SortIcon column="delta2v4" />
+                </th>
+                <th title="Medium-term trend: L4W vs weeks 5-8 ago" className="sortable trend-header" onClick={() => handleSort('delta4v8')}>
+                  Δ4v8 <SortIcon column="delta4v8" />
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -626,8 +640,12 @@ export default function PlayersView({ players, weekFilter, onWeekFilterChange, o
                 const isSelected = selectedPlayers.some(p => p.sleeper_id === player.sleeper_id);
                 const colorIdx = selectedPlayers.findIndex(p => p.sleeper_id === player.sleeper_id);
                 const trends = calcTrends(player);
-                const stats = calcPlayerStats(player, 99); // Full season for consistency
-                const remainingGames = getRemainingGames(player.nba_team, nbaSchedule);
+                const remainingGames = getRemainingGames(player.nba_team, nbaSchedule, player);
+                // Use period stats that are already calculated
+                const pct40plus = player.periodPct40plus;
+                const pct45plus = player.periodPct45plus;
+                const pctBust = player.periodPctBust;
+                const reliability = player.periodReliability;
                 return (
                   <tr
                     key={player.sleeper_id}
@@ -663,7 +681,10 @@ export default function PlayersView({ players, weekFilter, onWeekFilterChange, o
                       </div>
                     </td>
                     <td onClick={() => onPlayerSelect(player)}>
-                      <span className="player-position">{player.position}</span>
+                      <span className="player-position">
+                        {player.position}
+                        <span className="position-rank">#{positionRankings[player.sleeper_id]}</span>
+                      </span>
                     </td>
                     <td onClick={() => onPlayerSelect(player)} className="games-left-cell">
                       <span
@@ -674,28 +695,28 @@ export default function PlayersView({ players, weekFilter, onWeekFilterChange, o
                       </span>
                     </td>
                     <td onClick={() => onPlayerSelect(player)}>{player.totalGames}</td>
-                    <td onClick={() => onPlayerSelect(player)} className="stat-highlight positive">{player.expectedLockin.toFixed(1)}</td>
-                    <td onClick={() => onPlayerSelect(player)}>{player.avgFpts.toFixed(1)}</td>
-                    <td onClick={() => onPlayerSelect(player)} className="stat-highlight neutral">{player.lockinCeiling.toFixed(1)}</td>
-                    <td onClick={() => onPlayerSelect(player)}>{player.lockinFloor.toFixed(1)}</td>
+                    <td onClick={() => onPlayerSelect(player)} className="stat-highlight positive">{player.periodExpectedLockin.toFixed(1)}</td>
+                    <td onClick={() => onPlayerSelect(player)}>{player.periodAvgFpts.toFixed(1)}</td>
+                    <td onClick={() => onPlayerSelect(player)} className="stat-highlight neutral">{player.periodCeiling.toFixed(1)}</td>
+                    <td onClick={() => onPlayerSelect(player)}>{player.periodFloor.toFixed(1)}</td>
                     <td onClick={() => onPlayerSelect(player)}>
-                      <span className={`pct-badge ${stats.pct40plus >= 80 ? 'high' : stats.pct40plus >= 50 ? 'med' : 'low'}`}>
-                        {stats.pct40plus.toFixed(0)}
+                      <span className={`pct-badge ${pct40plus >= 80 ? 'high' : pct40plus >= 50 ? 'med' : 'low'}`}>
+                        {pct40plus.toFixed(0)}
                       </span>
                     </td>
                     <td onClick={() => onPlayerSelect(player)}>
-                      <span className={`pct-badge ${stats.pct45plus >= 60 ? 'high' : stats.pct45plus >= 30 ? 'med' : 'low'}`}>
-                        {stats.pct45plus.toFixed(0)}
+                      <span className={`pct-badge ${pct45plus >= 60 ? 'high' : pct45plus >= 30 ? 'med' : 'low'}`}>
+                        {pct45plus.toFixed(0)}
                       </span>
                     </td>
                     <td onClick={() => onPlayerSelect(player)}>
-                      <span className={`pct-badge bust ${stats.pctBust === 0 ? 'none' : stats.pctBust <= 15 ? 'low' : stats.pctBust <= 30 ? 'med' : 'high'}`}>
-                        {stats.pctBust.toFixed(0)}
+                      <span className={`pct-badge bust ${pctBust === 0 ? 'none' : pctBust <= 15 ? 'low' : pctBust <= 30 ? 'med' : 'high'}`}>
+                        {pctBust.toFixed(0)}
                       </span>
                     </td>
                     <td onClick={() => onPlayerSelect(player)}>
-                      <span className={`reliability-badge ${stats.reliability >= 70 ? 'high' : stats.reliability >= 45 ? 'med' : 'low'}`}>
-                        {stats.reliability.toFixed(0)}
+                      <span className={`reliability-badge ${reliability >= 70 ? 'high' : reliability >= 45 ? 'med' : 'low'}`}>
+                        {reliability.toFixed(0)}
                       </span>
                     </td>
                     <td onClick={() => onPlayerSelect(player)} className="trend-value-cell">
